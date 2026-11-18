@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>猴子收費小幫手</title>
+<style>
+/* 一樓收件櫃台用：按申請原因 → 填幾個數字 → 看大大的金額 → 列印明細 */
+:root {
+  --bg: #f4f1ea; --card: #ffffff; --card2: #f8f6f1; --ink: #1d2730; --muted: #5d6a74; --line: #d8d2c4;
+  --land: #2f7d4f; --land-soft: #e3f2e8; --bld: #1f5f8b; --bld-soft: #e1edf6; --court: #8a4b12; --court-soft: #f8ead9;
+  --ask: #b3302a; --ask-soft: #fbeceb; --money: #b3302a; --accent: #1f5f8b;
+  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --num: ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
+    --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
+    --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
+  --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
+  --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--font); }
+button, input, textarea, select { font: inherit; color: inherit; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 140px; }
+header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); letter-spacing: .04em; }
+h1 small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: 0; }
+.btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.big { padding: 12px 20px; font-size: 18px; font-weight: 700; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { color: #fff; filter: brightness(1.1); }
+.btn.law { font-size: 14px; padding: 4px 10px; border-color: var(--accent); color: var(--accent); background: transparent; }
+.steps { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; padding: 0; list-style: none; font-size: 15px; color: var(--muted); }
+.steps li b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); margin-right: 6px; font-size: 14px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+@media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- 第 1 步：申請原因大按鈕 ---- */
+.pick { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 16px; margin-bottom: 16px; }
+.pick h2 { margin: 0 0 10px; font-size: 19px; }
+.grp { margin-top: 10px; }
+.grp h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); font-weight: 600; letter-spacing: .1em; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+.tile { border: 2px solid var(--line); background: var(--card2); border-radius: 10px; padding: 10px 8px; cursor: pointer; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.3; position: relative; }
+.tile small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.g-land .tile:hover, .g-land .tile[aria-pressed="true"] { border-color: var(--land); }
+.g-land .tile[aria-pressed="true"] { background: var(--land-soft); }
+.g-bld .tile:hover, .g-bld .tile[aria-pressed="true"] { border-color: var(--bld); }
+.g-bld .tile[aria-pressed="true"] { background: var(--bld-soft); }
+.g-court .tile:hover, .g-court .tile[aria-pressed="true"] { border-color: var(--court); }
+.g-court .tile[aria-pressed="true"] { background: var(--court-soft); }
+.tile[aria-pressed="true"]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-size: 14px; }
+.tile.q { border-style: dashed; }
+.tile.q small { color: var(--ask); }
+
+/* ---- 第 2 步：填數字卡片 ---- */
+.cards { display: grid; gap: 14px; }
+.empty { border: 2px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--c, var(--accent)); border-radius: 14px; overflow: hidden; }
+.card.land { --c: var(--land); } .card.bld { --c: var(--bld); } .card.court { --c: var(--court); } .card.ask { --c: var(--ask); }
+.card-h { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; background: var(--card2); border-bottom: 1px solid var(--line); }
+.card-h h2 { margin: 0; font-size: 21px; }
+.card-h .sub { margin-left: auto; font: 700 20px var(--num); color: var(--money); }
+.card-h .x { border: 0; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; padding: 0 4px; }
+.card-h .x:hover { color: var(--ask); }
+.card-b { padding: 14px 16px 16px; display: grid; gap: 14px; }
+.say { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--card2); font-size: 15px; }
+.say b { color: var(--money); }
+.warn { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--ask-soft); color: var(--ask); font-size: 15px; }
+.q-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.q-row > .lbl { min-width: 10em; font-weight: 600; }
+.q-row .note { flex-basis: 100%; font-size: 13.5px; color: var(--muted); margin-top: -6px; }
+.stepper { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stepper button { width: 44px; border: 0; background: var(--card2); font-size: 22px; cursor: pointer; }
+.stepper button:hover { color: var(--accent); }
+.stepper input { width: 72px; border: 0; text-align: center; font: 700 20px var(--num); background: #fff7d6; color: #1d2730; padding: 6px 0; -moz-appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.unit { color: var(--muted); font-size: 15px; }
+.area-list { display: grid; gap: 8px; }
+.area-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
+.area-row .no { font-weight: 700; min-width: 4.5em; }
+.area-row input { width: 9em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 18px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+.area-row .tier { font-size: 14px; color: var(--muted); }
+.area-row .tier b { color: var(--ink); }
+.area-row .del { margin-left: auto; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; }
+.area-row .del:hover { color: var(--ask); }
+.opts { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--c, var(--accent)); background: var(--card2); }
+.opt input { width: 20px; height: 20px; margin-top: 3px; }
+.opt b { font-size: 16px; }
+.opt span { grid-column: 2; font-size: 13.5px; color: var(--muted); }
+textarea.kw { width: 100%; min-height: 80px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fff7d6; color: #1d2730; font-size: 16px; }
+.hits { display: flex; flex-wrap: wrap; gap: 6px; font-size: 14px; }
+.hits mark { background: var(--court-soft); color: var(--court); border: 1px solid var(--court); border-radius: 999px; padding: 0 10px; }
+input.money-in { width: 10em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 20px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+input.text-in { flex: 1 1 260px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--card); }
+
+/* ---- 第 3 步：應收合計 ---- */
+.total { position: sticky; top: 16px; background: var(--card); border: 2px solid var(--money); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+.total h2 { margin: 0; font-size: 18px; }
+.big-money { font: 800 clamp(40px, 6vw, 56px)/1 var(--num); color: var(--money); letter-spacing: -.02em; }
+.big-money small { font-size: 22px; margin-right: 4px; }
+.cn-money { font-size: 15px; color: var(--muted); margin-top: -4px; }
+.mini { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 15px; max-height: 40vh; overflow: auto; }
+.mini li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--line); padding: 3px 0; }
+.mini li span:last-child { font-family: var(--num); white-space: nowrap; }
+.mini li.flag span:first-child { color: var(--ask); }
+.case-in { display: grid; gap: 6px; font-size: 14px; }
+.case-in label { display: flex; gap: 8px; align-items: center; }
+.case-in input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; background: var(--card2); }
+.total .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.foot { margin-top: 18px; font-size: 13px; color: var(--muted); }
+@media (max-width: 980px) {
+  .total { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-radius: 16px 16px 0 0; border-width: 2px 0 0; z-index: 20; padding: 10px 16px; gap: 6px; box-shadow: 0 -10px 30px -10px rgba(0,0,0,.35); }
+  .total h2, .total .mini, .total .case-in, .total .cn-money { display: none; }
+  .total .row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .big-money { font-size: 36px; }
+}
+
+/* ---- 依據對話框 ---- */
+dialog { width: min(760px, calc(100vw - 24px)); max-height: 86vh; border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+.dlg-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+.dlg-h h2 { margin: 0; font-size: 19px; }
+.dlg-b { padding: 14px 18px 20px; display: grid; gap: 14px; font-size: 15.5px; }
+.law { border-left: 4px solid var(--accent); padding: 4px 0 4px 12px; }
+.law h3 { margin: 0 0 4px; font-size: 16px; color: var(--accent); }
+.law p { margin: 0 0 4px; }
+.law .src { font-size: 13px; color: var(--muted); }
+.law.inhouse { border-color: var(--court); }
+.law.inhouse h3 { color: var(--court); }
+table.t { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+table.t th, table.t td { border: 1px solid var(--line); padding: 5px 8px; text-align: center; }
+table.t td:first-child { text-align: left; }
+.tscroll { overflow-x: auto; }
+
+/* ---- 列印 ---- */
+#printArea { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm 14mm; }
+  body { background: #fff; color: #000; font-size: 12pt; }
+  .wrap, dialog { display: none !important; }
+  #printArea { display: block; }
+  .rp h1 { font-size: 20pt; text-align: center; margin: 0 0 4mm; letter-spacing: .2em; }
+  .rp .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 8mm; font-size: 11pt; margin-bottom: 4mm; }
+  .rp table { width: 100%; border-collapse: collapse; font-size: 11pt; }
+  .rp th, .rp td { border: 1px solid #000; padding: 1.6mm 2mm; vertical-align: top; }
+  .rp th { background: #eee; }
+  .rp td.n { text-align: right; font-family: var(--num); white-space: nowrap; }
+  .rp .grp-row td { background: #f3f3f3; font-weight: 700; }
+  .rp .basis { font-size: 9.5pt; color: #333; }
+  .rp .tot td { font-size: 14pt; font-weight: 700; }
+  .rp .notes { font-size: 9.5pt; margin-top: 4mm; }
+  .rp .sign { display: flex; justify-content: space-between; margin-top: 10mm; font-size: 11pt; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🐒 猴子收費小幫手 <small>測量案件收件預收費用提示（試作版 v0.1）</small></h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnAllLaw">📖 收費標準總表</button>
+      <button class="btn" id="btnTheme">🌓 深淺色</button>
+      <button class="btn" id="btnReset">🧹 清空重來</button>
+    </div>
+  </header>
+  <ol class="steps">
+    <li><b>1</b>按「申請原因」（跟收件系統的選單一樣）</li>
+    <li><b>2</b>照謄本填黃色格子</li>
+    <li><b>3</b>看紅色大字收錢、列印明細</li>
+  </ol>
+
+  <div class="layout">
+    <main>
+      <section class="pick" aria-label="選擇申請原因">
+        <h2>① 申請原因是什麼？<span style="font-weight:400;font-size:14px;color:var(--muted)">（可以按很多個，再按一次取消）</span></h2>
+        <div id="tileGroups"></div>
+      </section>
+      <section class="cards" id="cards" aria-label="填寫數字">
+        <div class="empty" id="emptyHint">👆 先按上面的申請原因，這裡會跳出要填的格子。</div>
+      </section>
+      <p class="foot">本頁為試算提示工具，實際收費以登記機關核定為準。依據《土地複丈費及建築改良物測量費收費標準》（112.5.1 施行）。資料只在這台電腦的瀏覽器內，不會上傳。</p>
+    </main>
+
+    <aside class="total" aria-live="polite">
+      <h2>③ 應預收合計</h2>
+      <div class="row1">
+        <div class="big-money"><small>NT$</small><span id="sum">0</span></div>
+        <div class="btns">
+          <button class="btn big primary" id="btnPrint">🖨 列印明細</button>
+          <button class="btn" id="btnWhy">📖 為什麼是這個數？</button>
+        </div>
+      </div>
+      <div class="cn-money" id="sumCn">新臺幣零元整</div>
+      <ul class="mini" id="mini"></ul>
+      <div class="case-in">
+        <label>收件字號 <input id="caseNo" placeholder="例：○○字第 123 號（選填）"></label>
+        <label>申請人 <input id="caseWho" placeholder="選填"></label>
+        <label>坐落 <input id="caseWhere" placeholder="例：○○段 123 地號（選填）"></label>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-h"><h2 id="dlgTitle">依據</h2><button class="btn" onclick="dlg.close()">關閉 ✕</button></div>
+  <div class="dlg-b" id="dlgBody"></div>
+</dialog>
+
+<div id="printArea"></div>
+
+<script>
+/* =====================================================================
+   費率：法規修正時只要改這裡
+   ===================================================================== */
+const RATES = {
+  tierNames: ["未滿 200 ㎡", "200～未滿 1,000 ㎡", "1,000～未滿 10,000 ㎡", "10,000 ㎡ 以上"],
+  jianjieBase: [2500, 3000, 3500, 4000],   // 附表一項次一 鑑界基本費
+  jianjieUnit: 1000,                        // 鑑界施測費，每 5 點一單位
+  splitBase: [1500, 2000, 2500, 3000],      // 附表一項次四～九 基本費
+  line: 500,                                // 每線段
+  point: 200,                               // 未埋界標確定界址點，每點
+  survey500: 500,                           // 位置／他項勘查、基地號／門牌勘查、全部滅失
+  bldPos: 4000, bldPosSame: 200, bldFloor: 1000,     // 附表二項次一
+  bldRedrawPos: 200, bldRedrawFloor: 800,            // 附表二項次二
+  bldCheck: 200, bldDigital: 600,                    // 附表二項次三
+  bMergeUnit: 400, bMergeDraw: 400,                  // 附表三項次一
+  bSplitUnit: 1000, bSplitDraw: 800,                 // 附表三項次二
+  bLossUnit: 1000, bLossDraw: 800,                   // 附表三項次三
+  courtBld: 5000,                                    // 內部作法：法院會勘／地上物，預收 5,000（＝位置圖 4,000＋平面圖 1 單位 1,000）
+  copy: 20,                                          // 工本費電腦列印每張
+};
+const tierOf = a => a < 200 ? 0 : a < 1000 ? 1 : a < 10000 ? 2 : 3;
+const units50 = a => a > 0 ? Math.ceil(a / 50) : 0;
+const fmt = n => n.toLocaleString("zh-TW");
+
+/* =====================================================================
+   依據條文（按「📖 依據」時顯示）
+   ===================================================================== */
+const LAW = {
+  t1_1: { h: "附表一 項次一　土地鑑界複丈費", p: ["基本費以每筆地號面積為單位：未滿 200 ㎡ 2,500 元／200～未滿 1,000 ㎡ 3,000 元／1,000～未滿 10,000 ㎡ 3,500 元／10,000 ㎡ 以上 4,000 元。", "施測費以每五個指定鑑定界址點或測量標的點為單位，每單位 1,000 元，不足五個點以五個點計（含界標成本）。"] },
+  t1_2: { h: "附表一 項次二　土地位置或他項權利位置勘查費", p: ["以每筆地號為單位，每筆 500 元。"] },
+  t1_3: { h: "附表一 項次三　土地合併複丈費", p: ["免納複丈費。"] },
+  t1_4: { h: "附表一 項次四　土地分割複丈費", p: ["基本費以分割前每筆地號面積為單位：1,500／2,000／2,500／3,000 元（同面積級距）。", "施測費以線段為單位，每線段 500 元。"] },
+  t1_5: { h: "附表一 項次五　土地界址曲折調整或調整地形複丈費", p: ["基本費以調整地號面積總和為單位：1,500／2,000／2,500／3,000 元。", "施測費以線段為單位，每線段 500 元。"] },
+  t1_6: { h: "附表一 項次六　未登記土地複丈費", p: ["基本費以複丈後每筆地號面積為單位；施測費以線段為單位，每線段 500 元。"] },
+  t1_7: { h: "附表一 項次七　土地自然增加或浮覆複丈費", p: ["基本費以複丈後每筆地號面積為單位；施測費以線段為單位，每線段 500 元。"] },
+  t1_8: { h: "附表一 項次八　土地坍沒複丈費", p: ["基本費以坍沒後存餘每筆地號面積為單位；施測費以線段為單位，每線段 500 元。"] },
+  t1_9: { h: "附表一 項次九　土地他項權利位置複丈費", p: ["基本費以每筆地號面積為單位；施測費以線段為單位，每線段 500 元。"] },
+  t1_n: { h: "附表一 附註", p: ["一、施測費含土地制式界標成本。", "二、線段指複丈時施測經界或範圍之直線段或圓弧線段；因圖幅管理致線段切分者，不得重複計數。", "三、項次四及項次五，申請人未能埋設界標一併申請確定界址點者，每界址點加繳 200 元。"] },
+  t2_1: { h: "附表二 項次一　建物測量（地籍測量實施規則 §282）", p: ["建物位置圖測量費：以整棟建物為單位，4,000 元。", "建物平面圖測量費：以每建號每層每 50 ㎡ 為一單位，每單位 1,000 元，不足 50 ㎡ 以 50 ㎡ 計；樓房分層計算，區分所有者分別計算。", "附註一：同棟其他區分所有權人可調原勘測位置圖轉繪者，以每建號 200 元計收。"] },
+  t2_2: { h: "附表二 項次二　建物測量（§282-1 附建物測繪資料）", p: ["建物位置圖轉繪費：每建號 200 元。", "建物平面圖轉繪費：每建號 800 元。", "附註二：未能檢附建物地籍測繪資料者，應加繳建物位置圖測量費（4,000 元／棟），由登記機關現場測量建物位置。"] },
+  t2_3: { h: "附表二 項次三　建物測量（§282-2 自行繪製）", p: ["建物測量成果圖核對費：每建號 200 元。", "建物平面圖及位置圖數值化作業費：每建號 600 元（未能檢附電子檔者應加繳）。", "附註二：未能檢附建物地籍測繪資料者，應加繳建物位置圖測量費（4,000 元／棟）。"] },
+  t3_1: { h: "附表三 項次一　建物合併", p: ["複丈費：以合併前每建號之面積計算，每建號每層每 50 ㎡ 一單位，每單位 400 元。", "轉繪費：以合併前每建號為單位，每建號 400 元。"] },
+  t3_2: { h: "附表三 項次二　建物分割", p: ["複丈費：以分割後每建號之面積計算，每建號每層每 50 ㎡ 一單位，每單位 1,000 元。", "轉繪費：以分割後每建號為單位，每建號 800 元。"] },
+  t3_3: { h: "附表三 項次三　建物部分滅失", p: ["測量費：以滅失後存餘建物之面積計算，每建號每層每 50 ㎡ 一單位，每單位 1,000 元；多樓層僅個別樓層部分滅失者，以該樓層存餘部分面積計收。", "轉繪費：每建號 800 元。"] },
+  t3_4: { h: "附表三 項次四　建物基地號或門牌號勘查費", p: ["以每建號為單位，每建號 500 元。"] },
+  t3_5: { h: "附表三 項次五　建物全部滅失勘查費", p: ["建物或特別建物各棟次之全部滅失勘查費，以每建號為單位，每建號 500 元。"] },
+  s4: { h: "收費標準 第 4 條　法院／行政執行分署囑託", p: ["一、測量及繪製共有物分割方案，依附表一項次四；有多項分割方案者，基本費僅收一次，施測費分別計收。", "二、測量土地現況之地上物位置，依附表二項次一之建物位置圖測量費；需另計算地上物面積，依同項次之建物平面圖測量費。", "三、未登記建物查封測量，依附表二項次一。", "囑託限期在收件之日起十五日內辦理者，費用加倍計收。"] },
+  s5: { h: "收費標準 第 5 條", p: ["各級法院或檢察機關行使國家刑罰權囑託辦理測量、複丈者，免納費用。"] },
+  s6: { h: "收費標準 第 6 條　判決確定／調處確定，免實地測量者半數計收", p: ["依法院確定判決書（或同一效力之證明文件）、或不動產糾紛調處確定結果申請之複丈，得依已核定之測量成果辦理而無需實地測量者，依收費數額半數計收。"] },
+  s7: { h: "收費標準 第 7 條　工本費", p: ["成果圖、位置圖、標示圖、鑑定書圖等工本費，除依規定發給外，電腦列印每張 20 元；人工影印每張 15 元。"] },
+  inSplit: { inhouse: true, h: "本所收件作法：分割類預收", p: ["分割類案件以「基本費＋1 條線（500 元）」預收，實際線段數待測量後依地籍測量系統計算，多退少補。"] },
+  inCourt: { inhouse: true, h: "本所收件作法：法院囑託看關鍵字", p: ["來文出現「會勘」「勘測地上物」「現況」「查封」等（僅測建物／地上物）：預收 5,000 元（＝建物位置圖測量費 4,000＋平面圖測量費 1 單位 1,000）。", "來文出現「繪製」「分割方案」：預收分割基本費（依分割前每筆地號面積分級）。"] },
+  inJianjie: { inhouse: true, h: "本所收件作法：鑑界預收（試作假設，待確認）", p: ["預收每筆基本費＋施測費 1 單位（1,000 元，5 點）。點數多於 5 點者，測量後依實際點數多退少補。"] },
+};
+
+/* =====================================================================
+   申請原因（順序照收件系統選單）
+   kind 決定要問哪些問題；ask=true 代表還不確定怎麼收
+   ===================================================================== */
+const ITEMS = [
+  { id: "jianjie",  name: "鑑界",       g: "land", kind: "jianjie" },
+  { id: "split",    name: "土地分割",   g: "land", kind: "lines", law: ["t1_4", "t1_n", "inSplit", "s6"], baseNote: "分割前每筆地號面積", pts: true, half: true },
+  { id: "merge",    name: "土地合併",   g: "land", kind: "free",  law: ["t1_3"] },
+  { id: "courtL",   name: "土地法院囑託", g: "court", kind: "court" },
+  { id: "jingfen",  name: "逕為分割",   g: "land", kind: "ask" },
+  { id: "useArea",  name: "使用面積測量", g: "land", kind: "ask" },
+  { id: "newReg",   name: "新登記",     g: "land", kind: "lines", law: ["t1_6", "inSplit"], baseNote: "複丈後每筆地號面積", sub: "未登記土地" },
+  { id: "fix",      name: "更正",       g: "land", kind: "ask" },
+  { id: "single",   name: "單筆建檔",   g: "land", kind: "ask" },
+  { id: "tanmo",    name: "坍沒建檔",   g: "land", kind: "lines", law: ["t1_8", "inSplit"], baseNote: "坍沒後存餘每筆地號面積", sub: "依附表一項次八" },
+  { id: "fufu",     name: "浮覆建檔",   g: "land", kind: "lines", law: ["t1_7", "inSplit"], baseNote: "複丈後每筆地號面積", sub: "依附表一項次七" },
+  { id: "natural",  name: "自然增加",   g: "land", kind: "lines", law: ["t1_7", "inSplit"], baseNote: "複丈後每筆地號面積" },
+  { id: "adjust",   name: "界址調整",   g: "land", kind: "adjust" },
+  { id: "rejian",   name: "再鑑界",     g: "land", kind: "jianjie", sub: "暫比照鑑界", flag: "再鑑界暫比照鑑界收費，請確認" },
+  { id: "other",    name: "他項權利",   g: "land", kind: "other" },
+  { id: "landElse", name: "土地其他",   g: "land", kind: "ask" },
+  { id: "bFirst",   name: "建物第一次", g: "bld",  kind: "bfirst" },
+  { id: "bSplit",   name: "建物分割",   g: "bld",  kind: "bsplit" },
+  { id: "bMerge",   name: "建物合併",   g: "bld",  kind: "bmerge" },
+  { id: "courtB",   name: "建物法院囑託", g: "court", kind: "courtB" },
+  { id: "extend",   name: "增建",       g: "bld",  kind: "ask", hint: "可能比照「建物第一次」測量增建部分？" },
+  { id: "rebuild",  name: "改建",       g: "bld",  kind: "ask" },
+  { id: "loss",     name: "滅失",       g: "bld",  kind: "loss" },
+  { id: "baseNo",   name: "基地號勘查", g: "bld",  kind: "per500", law: ["t3_4"] },
+  { id: "doorNo",   name: "門牌勘查",   g: "bld",  kind: "per500", law: ["t3_4"] },
+  { id: "bldElse",  name: "建物其他",   g: "bld",  kind: "ask" },
+  { id: "landUse",  name: "地目變更",   g: "land", kind: "ask" },
+  { id: "dingzh",   name: "訂正",       g: "land", kind: "ask" },
+];
+const GROUPS = [
+  { g: "land",  t: "🌱 土地" },
+  { g: "bld",   t: "🏠 建物" },
+  { g: "court", t: "⚖️ 法院囑託" },
+];
+
+/* 狀態 */
+const state = {}; // id -> 該卡片的輸入值
+let order = [];   // 卡片順序
+const LS = "monkey-fee-v0";
+function save() { try { localStorage.setItem(LS, JSON.stringify({ state, order, c: caseInfo() })); } catch (e) {} }
+function caseInfo() { return { no: caseNo.value, who: caseWho.value, where: caseWhere.value }; }
+
+function defaults(it) {
+  switch (it.kind) {
+    case "jianjie": return { lots: [""], units: 1 };
+    case "lines":   return { lots: [""], lines: 1, pts: 0, half: false };
+    case "adjust":  return { area: "", lines: 1, pts: 0 };
+    case "other":   return { mode: "survey", lots: [""], lines: 1, n: 1 };
+    case "free":    return {};
+    case "per500":  return { n: 1 };
+    case "bfirst":  return { mode: "282", buildings: 1, sameBld: 0, floors: [""], n: 1, hasData: true, hasFile: true };
+    case "bsplit":  return { floors: ["", ""], n: 2 };
+    case "bmerge":  return { floors: ["", ""], n: 2 };
+    case "loss":    return { mode: "all", n: 1, floors: [""] };
+    case "court":   return { text: "", useBld: false, useSplit: false, auto: true, bldN: 1, lots: [""], plans: 1, double: false, criminal: false };
+    case "courtB":  return { bldN: 1, double: false, criminal: false };
+    case "ask":     return { amt: "", memo: "" };
+  }
+}
+
+/* =====================================================================
+   計算：每張卡片回傳明細列 [{t:項目, f:算式, a:金額, law:[依據]}]
+   ===================================================================== */
+const KW_BLD = ["會勘", "勘測", "勘查", "地上物", "現況", "查封"];
+const KW_SPLIT = ["繪製", "方案"];
+function kwHits(text, list) { return list.filter(k => text.includes(k)); }
+
+function lotLines(lots, table, label) {
+  const out = [];
+  lots.forEach((v, i) => {
+    const a = parseFloat(v);
+    if (!(a > 0)) return;
+    const t = tierOf(a);
+    out.push({ t: `${label}（第 ${i + 1} 筆，${fmt(a)} ㎡，${RATES.tierNames[t]}）`, f: `${fmt(table[t])} × 1 筆`, a: table[t] });
+  });
+  return out;
+}
+function floorLines(floors, rate, label) {
+  const out = []; let u = 0;
+  floors.forEach(v => { u += units50(parseFloat(v) || 0); });
+  if (u) out.push({ t: label, f: `${fmt(rate)} × ${u} 單位（每 50 ㎡ 一單位）`, a: rate * u });
+  return out;
+}
+
+function calc(it) {
+  const s = state[it.id];
+  const L = [];
+  switch (it.kind) {
+    case "jianjie": {
+      lotLines(s.lots, RATES.jianjieBase, "鑑界基本費").forEach(x => L.push({ ...x, law: ["t1_1"] }));
+      if (s.units > 0) L.push({ t: "鑑界施測費（每 5 點一單位）", f: `${fmt(RATES.jianjieUnit)} × ${s.units} 單位`, a: RATES.jianjieUnit * s.units, law: ["t1_1", "inJianjie"] });
+      break;
+    }
+    case "lines": {
+      const k = it.law[0];
+      lotLines(s.lots, RATES.splitBase, "基本費").forEach(x => L.push({ ...x, law: [k] }));
+      if (s.lines > 0) L.push({ t: "施測費（線段）", f: `${fmt(RATES.line)} × ${s.lines} 條線`, a: RATES.line * s.lines, law: [k, "inSplit"] });
+      if (it.pts && s.pts > 0) L.push({ t: "確定界址點（未埋界標）", f: `${fmt(RATES.point)} × ${s.pts} 點`, a: RATES.point * s.pts, law: ["t1_n"] });
+      if (it.half && s.half) { const sub = L.reduce((x, y) => x + y.a, 0); const h = Math.ceil(sub / 2); L.push({ t: "判決／調處確定，免實地測量：半數計收", f: `−(${fmt(sub)} ÷ 2)`, a: -(sub - h), law: ["s6"] }); }
+      break;
+    }
+    case "adjust": {
+      const a = parseFloat(s.area);
+      if (a > 0) { const t = tierOf(a); L.push({ t: `界址調整基本費（調整地號面積總和 ${fmt(a)} ㎡，${RATES.tierNames[t]}）`, f: `${fmt(RATES.splitBase[t])}（只收一次）`, a: RATES.splitBase[t], law: ["t1_5"] }); }
+      if (s.lines > 0) L.push({ t: "施測費（線段）", f: `${fmt(RATES.line)} × ${s.lines} 條線`, a: RATES.line * s.lines, law: ["t1_5", "inSplit"] });
+      if (s.pts > 0) L.push({ t: "確定界址點（未埋界標）", f: `${fmt(RATES.point)} × ${s.pts} 點`, a: RATES.point * s.pts, law: ["t1_n"] });
+      break;
+    }
+    case "other": {
+      if (s.mode === "look") { if (s.n > 0) L.push({ t: "他項權利位置勘查（只指界、不測量）", f: `${fmt(RATES.survey500)} × ${s.n} 筆`, a: RATES.survey500 * s.n, law: ["t1_2"] }); }
+      else {
+        lotLines(s.lots, RATES.splitBase, "他項權利位置複丈基本費").forEach(x => L.push({ ...x, law: ["t1_9"] }));
+        if (s.lines > 0) L.push({ t: "施測費（線段）", f: `${fmt(RATES.line)} × ${s.lines} 條線`, a: RATES.line * s.lines, law: ["t1_9", "inSplit"] });
+      }
+      break;
+    }
+    case "free": L.push({ t: "土地合併：免納複丈費", f: "0", a: 0, law: ["t1_3"] }); break;
+    case "per500": if (s.n > 0) L.push({ t: `${it.name}費`, f: `${fmt(RATES.survey500)} × ${s.n} 建號`, a: RATES.survey500 * s.n, law: it.law }); break;
+    case "bfirst": {
+      if (s.mode === "282") {
+        const full = Math.max(0, s.buildings);
+        if (full) L.push({ t: "建物位置圖測量費", f: `${fmt(RATES.bldPos)} × ${full} 棟`, a: RATES.bldPos * full, law: ["t2_1"] });
+        if (s.sameBld > 0) L.push({ t: "同棟已測過，調原位置圖轉繪", f: `${fmt(RATES.bldPosSame)} × ${s.sameBld} 建號`, a: RATES.bldPosSame * s.sameBld, law: ["t2_1"] });
+        floorLines(s.floors, RATES.bldFloor, "建物平面圖測量費").forEach(x => L.push({ ...x, law: ["t2_1"] }));
+      } else if (s.mode === "2821") {
+        L.push({ t: "建物位置圖轉繪費", f: `${fmt(RATES.bldRedrawPos)} × ${s.n} 建號`, a: RATES.bldRedrawPos * s.n, law: ["t2_2"] });
+        L.push({ t: "建物平面圖轉繪費", f: `${fmt(RATES.bldRedrawFloor)} × ${s.n} 建號`, a: RATES.bldRedrawFloor * s.n, law: ["t2_2"] });
+        if (!s.hasData) L.push({ t: "沒附建物測繪資料：加收位置圖測量費", f: `${fmt(RATES.bldPos)} × ${s.buildings} 棟`, a: RATES.bldPos * s.buildings, law: ["t2_2"] });
+      } else {
+        L.push({ t: "建物測量成果圖核對費", f: `${fmt(RATES.bldCheck)} × ${s.n} 建號`, a: RATES.bldCheck * s.n, law: ["t2_3"] });
+        if (!s.hasFile) L.push({ t: "沒附電子檔：數值化作業費", f: `${fmt(RATES.bldDigital)} × ${s.n} 建號`, a: RATES.bldDigital * s.n, law: ["t2_3"] });
+        if (!s.hasData) L.push({ t: "沒附建物測繪資料：加收位置圖測量費", f: `${fmt(RATES.bldPos)} × ${s.buildings} 棟`, a: RATES.bldPos * s.buildings, law: ["t2_3"] });
+      }
+      break;
+    }
+    case "bsplit":
+      floorLines(s.floors, RATES.bSplitUnit, "建物分割複丈費（分割後面積）").forEach(x => L.push({ ...x, law: ["t3_2"] }));
+      if (s.n > 0) L.push({ t: "建物分割轉繪費", f: `${fmt(RATES.bSplitDraw)} × ${s.n} 建號（分割後）`, a: RATES.bSplitDraw * s.n, law: ["t3_2"] });
+      break;
+    case "bmerge":
+      floorLines(s.floors, RATES.bMergeUnit, "建物合併複丈費（合併前面積）").forEach(x => L.push({ ...x, law: ["t3_1"] }));
+      if (s.n > 0) L.push({ t: "建物合併轉繪費", f: `${fmt(RATES.bMergeDraw)} × ${s.n} 建號（合併前）`, a: RATES.bMergeDraw * s.n, law: ["t3_1"] });
+      break;
+    case "loss":
+      if (s.mode === "all") { if (s.n > 0) L.push({ t: "建物全部滅失勘查費", f: `${fmt(RATES.survey500)} × ${s.n} 建號`, a: RATES.survey500 * s.n, law: ["t3_5"] }); }
+      else {
+        floorLines(s.floors, RATES.bLossUnit, "建物部分滅失測量費（存餘面積）").forEach(x => L.push({ ...x, law: ["t3_3"] }));
+        if (s.n > 0) L.push({ t: "建物部分滅失轉繪費", f: `${fmt(RATES.bLossDraw)} × ${s.n} 建號`, a: RATES.bLossDraw * s.n, law: ["t3_3"] });
+      }
+      break;
+    case "court":
+    case "courtB": {
+      if (s.criminal) { L.push({ t: "法院／檢察機關行使國家刑罰權囑託：免費", f: "0", a: 0, law: ["s5"] }); break; }
+      const useBld = it.kind === "courtB" ? true : s.useBld;
+      if (useBld && s.bldN > 0) L.push({ t: "法院囑託：會勘／測地上物（僅測建物）", f: `${fmt(RATES.courtBld)} × ${s.bldN} 棟`, a: RATES.courtBld * s.bldN, law: ["inCourt", "s4", "t2_1"] });
+      if (it.kind === "court" && s.useSplit) lotLines(s.lots, RATES.splitBase, "法院囑託：繪製分割方案基本費").forEach(x => L.push({ ...x, law: ["inCourt", "s4", "t1_4"] }));
+      if (s.double) { const sub = L.reduce((x, y) => x + y.a, 0); if (sub) L.push({ t: "限期 15 日內辦理：費用加倍", f: `+${fmt(sub)}`, a: sub, law: ["s4"] }); }
+      break;
+    }
+    case "ask": {
+      const a = parseFloat(s.amt);
+      L.push({ t: `${it.name}（⚠ 收費方式待確認${s.memo ? "：" + s.memo : ""}）`, f: a > 0 ? "手動輸入" : "未填", a: a > 0 ? a : 0, law: [], flag: true });
+      break;
+    }
+  }
+  if (it.flag) L.forEach(x => x.flag = true);
+  return L;
+}
+
+/* =====================================================================
+   畫面
+   ===================================================================== */
+const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstElementChild; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderTiles() {
+  const box = document.getElementById("tileGroups");
+  box.innerHTML = "";
+  GROUPS.forEach(G => {
+    const g = $(`<div class="grp g-${G.g}"><h3>${G.t}</h3><div class="tiles"></div></div>`);
+    ITEMS.filter(i => i.g === G.g).forEach(it => {
+      const sub = it.kind === "ask" ? "？待確認" : it.sub || "";
+      const b = $(`<button class="tile${it.kind === "ask" ? " q" : ""}" aria-pressed="${!!state[it.id]}">${esc(it.name)}${sub ? `<small>${esc(sub)}</small>` : ""}</button>`);
+      b.onclick = () => toggle(it.id);
+      g.querySelector(".tiles").appendChild(b);
+    });
+    box.appendChild(g);
+  });
+}
+
+function toggle(id) {
+  if (state[id]) { delete state[id]; order = order.filter(x => x !== id); }
+  else { state[id] = defaults(ITEMS.find(i => i.id === id)); order.push(id); }
+  renderTiles(); renderCards(); update();
+  if (state[id]) document.getElementById("card-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function stepper(key, val, unit, min = 0) {
+  return `<span class="stepper"><button type="button" data-step="${key}" data-d="-1" aria-label="減少">−</button><input type="number" inputmode="numeric" min="${min}" data-k="${key}" value="${val}"><button type="button" data-step="${key}" data-d="1" aria-label="增加">＋</button></span><span class="unit">${unit}</span>`;
+}
+function areaList(key, arr, label, unitWord) {
+  return `<div class="area-list" data-list="${key}">${arr.map((v, i) => `
+    <div class="area-row"><span class="no">${label} ${i + 1}</span>
+      <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="面積" data-li="${key}" data-i="${i}" value="${esc(v)}"><span class="unit">㎡</span>
+      <span class="tier" data-tier="${key}-${i}"></span>
+      ${arr.length > 1 ? `<button class="del" data-del="${key}" data-i="${i}" aria-label="刪除">✕</button>` : ""}</div>`).join("")}
+    <button class="btn" data-add="${key}" style="justify-self:start">＋ 再加一${unitWord}</button></div>`;
+}
+function radio(name, val, cur, title, desc) {
+  return `<label class="opt"><input type="radio" name="${name}" value="${val}" ${cur === val ? "checked" : ""}><b>${title}</b>${desc ? `<span>${desc}</span>` : ""}</label>`;
+}
+function check(key, cur, title, desc) {
+  return `<label class="opt"><input type="checkbox" data-ck="${key}" ${cur ? "checked" : ""}><b>${title}</b>${desc ? `<span>${desc}</span>` : ""}</label>`;
+}
+
+function body(it) {
+  const s = state[it.id];
+  switch (it.kind) {
+    case "jianjie": return `
+      <p class="say">怎麼收：<b>每筆地號基本費</b>（看面積）＋ <b>施測費 1,000 元</b>（每 5 點一單位）。</p>
+      <div><div class="q-row"><span class="lbl">每筆地號面積（看謄本）</span></div>${areaList("lots", s.lots, "地號", "筆地號")}</div>
+      <div class="q-row"><span class="lbl">施測費單位</span>${stepper("units", s.units, "單位")}<span class="note">預收先填 1 單位（5 點）；民眾指定點數多時：點數 ÷ 5 無條件進位。</span></div>`;
+    case "lines": return `
+      <p class="say">怎麼收：<b>每筆地號基本費</b>（看${esc(it.baseNote)}）＋ <b>每條線 500 元</b>。預收先算 <b>1 條線</b>。</p>
+      <div><div class="q-row"><span class="lbl">${esc(it.baseNote)}</span></div>${areaList("lots", s.lots, "地號", "筆地號")}</div>
+      <div class="q-row"><span class="lbl">線段數</span>${stepper("lines", s.lines, "條線")}<span class="note">預收一律先填 1，實際線數測量後多退少補。</span></div>
+      ${it.pts ? `<div class="q-row"><span class="lbl">確定界址點（未埋界標）</span>${stepper("pts", s.pts, "點")}<span class="note">民眾沒有自己埋界標、要一併確定界址點才填，每點 200 元。一般填 0。</span></div>` : ""}
+      ${it.half ? `<div class="opts">${check("half", s.half, "附法院確定判決書／調處確定結果，而且不必到現場測量", "符合第 6 條才勾：整筆費用半數計收。不確定就不要勾。")}</div>` : ""}`;
+    case "adjust": return `
+      <p class="say">怎麼收：<b>基本費只收一次</b>（看<b>所有調整地號面積加起來</b>）＋ <b>每條線 500 元</b>。預收先算 1 條線。</p>
+      <div class="area-row"><span class="no">面積總和</span><input type="number" inputmode="decimal" step="0.01" min="0" placeholder="全部加起來" data-k="area" value="${esc(s.area)}"><span class="unit">㎡</span><span class="tier" data-tier="area"></span></div>
+      <div class="q-row"><span class="lbl">線段數</span>${stepper("lines", s.lines, "條線")}</div>
+      <div class="q-row"><span class="lbl">確定界址點（未埋界標）</span>${stepper("pts", s.pts, "點")}<span class="note">一般填 0。</span></div>`;
+    case "other": return `
+      <div class="opts">${radio("mode", "survey", s.mode, "要實際測量他項權利位置", "基本費（看每筆面積）＋每條線 500 元")}${radio("mode", "look", s.mode, "只要勘查／指界，不測量", "每筆 500 元")}</div>
+      ${s.mode === "look" ? `<div class="q-row"><span class="lbl">幾筆地號</span>${stepper("n", s.n, "筆", 1)}</div>` :
+      `<div><div class="q-row"><span class="lbl">每筆地號面積</span></div>${areaList("lots", s.lots, "地號", "筆地號")}</div>
+       <div class="q-row"><span class="lbl">線段數</span>${stepper("lines", s.lines, "條線")}<span class="note">預收先填 1。</span></div>`}
+      <p class="warn">⚠ 試作版假設：他項權利一般選「實際測量」。兩種到底怎麼分，請再確認。</p>`;
+    case "free": return `<p class="say">土地合併 <b>免納複丈費</b>，不用收錢。🎉</p>`;
+    case "per500": return `
+      <p class="say">怎麼收：<b>每個建號 500 元</b>。</p>
+      <div class="q-row"><span class="lbl">幾個建號</span>${stepper("n", s.n, "建號", 1)}</div>`;
+    case "bfirst": return `
+      <p class="say">先看民眾<b>帶了什麼</b>來，選一個：</p>
+      <div class="opts">
+        ${radio("mode", "282", s.mode, "沒有圖，要我們去測（建管前建物等，§282）", "位置圖 4,000 元／棟 ＋ 平面圖 每層每 50 ㎡ 1,000 元")}
+        ${radio("mode", "2821", s.mode, "有建物測繪資料（使照竣工圖等），我們轉繪（§282-1）", "每建號 200＋800 元")}
+        ${radio("mode", "2822", s.mode, "自己請人畫好成果圖，我們核對（§282-2）", "每建號 200 元，沒電子檔再加 600 元")}
+      </div>
+      ${s.mode === "282" ? `
+        <div class="q-row"><span class="lbl">要測位置圖幾棟</span>${stepper("buildings", s.buildings, "棟")}<span class="note">同一棟已經有人測過位置圖、可以調原圖的建號，不要算在這裡，填下面一格。</span></div>
+        <div class="q-row"><span class="lbl">同棟已測過（調原圖）</span>${stepper("sameBld", s.sameBld, "建號")}<span class="note">每建號 200 元。一般填 0。</span></div>
+        <div><div class="q-row"><span class="lbl">每層（每建號每層各一列）面積</span></div>${areaList("floors", s.floors, "樓層", "層")}</div>` :
+      `<div class="q-row"><span class="lbl">幾個建號</span>${stepper("n", s.n, "建號", 1)}</div>
+       <div class="opts">
+         ${check("hasData", s.hasData, "有附建物地籍測繪資料", "沒附的話不要勾：要加收位置圖測量費 4,000 元／棟")}
+         ${s.mode === "2822" ? check("hasFile", s.hasFile, "有附電子檔（符合共通格式）", "沒附的話不要勾：每建號加收 600 元") : ""}
+       </div>
+       ${!s.hasData ? `<div class="q-row"><span class="lbl">幾棟</span>${stepper("buildings", s.buildings, "棟", 1)}</div>` : ""}`}`;
+    case "bsplit": return `
+      <p class="say">怎麼收：<b>分割後</b>每建號每層每 50 ㎡ <b>1,000 元</b> ＋ 每建號轉繪 <b>800 元</b>。</p>
+      <div><div class="q-row"><span class="lbl">分割後每建號每層面積</span></div>${areaList("floors", s.floors, "列", "列")}</div>
+      <div class="q-row"><span class="lbl">分割後共幾個建號</span>${stepper("n", s.n, "建號")}</div>`;
+    case "bmerge": return `
+      <p class="say">怎麼收：<b>合併前</b>每建號每層每 50 ㎡ <b>400 元</b> ＋ 每建號轉繪 <b>400 元</b>。</p>
+      <div><div class="q-row"><span class="lbl">合併前每建號每層面積</span></div>${areaList("floors", s.floors, "列", "列")}</div>
+      <div class="q-row"><span class="lbl">合併前共幾個建號</span>${stepper("n", s.n, "建號")}</div>`;
+    case "loss": return `
+      <div class="opts">${radio("mode", "all", s.mode, "整棟全部滅失（拆光了）", "每建號 500 元")}${radio("mode", "part", s.mode, "部分滅失（拆一部分，還剩一些）", "剩下的面積每層每 50 ㎡ 1,000 元 ＋ 每建號 800 元")}</div>
+      ${s.mode === "all" ? `<div class="q-row"><span class="lbl">幾個建號</span>${stepper("n", s.n, "建號", 1)}</div>` :
+      `<div><div class="q-row"><span class="lbl">滅失後「剩下的」每層面積</span></div>${areaList("floors", s.floors, "樓層", "層")}</div>
+       <div class="q-row"><span class="lbl">幾個建號</span>${stepper("n", s.n, "建號", 1)}</div>`}`;
+    case "court": {
+      const hb = kwHits(s.text, KW_BLD), hs = kwHits(s.text, KW_SPLIT);
+      return `
+      <p class="say">把法院來文的<b>主旨／說明</b>貼進來（或打幾個關鍵字），小幫手會自動判斷。</p>
+      <textarea class="kw" data-k="text" placeholder="例：請貴所派員於○月○日會同本院至現場勘測地上物位置及面積……">${esc(s.text)}</textarea>
+      <div class="hits">${hb.map(k => `<mark>建物：${esc(k)}</mark>`).join("")}${hs.map(k => `<mark>分割：${esc(k)}</mark>`).join("")}${!hb.length && !hs.length ? `<span style="color:var(--muted)">還沒抓到關鍵字（會勘、勘測、地上物、查封、繪製、方案…）</span>` : ""}</div>
+      <div class="opts">
+        ${check("useBld", s.useBld, "會勘／勘測地上物（僅測建物）→ 預收 5,000 元", "關鍵字：會勘、勘測、地上物、現況、查封")}
+        ${check("useSplit", s.useSplit, "有「繪製方案」→ 預收分割基本費", "看分割前每筆地號面積：1,500／2,000／2,500／3,000")}
+      </div>
+      ${s.useBld ? `<div class="q-row"><span class="lbl">幾棟地上物</span>${stepper("bldN", s.bldN, "棟", 1)}<span class="note">一般 1 棟。</span></div>` : ""}
+      ${s.useSplit ? `<div><div class="q-row"><span class="lbl">分割前每筆地號面積</span></div>${areaList("lots", s.lots, "地號", "筆地號")}<p class="hint" style="margin:6px 0 0;font-size:13.5px;color:var(--muted)">多個分割方案，基本費也只收一次。</p></div>` : ""}
+      <div class="opts">
+        ${check("double", s.double, "來文要求收件後 15 日內辦完 → 費用加倍", "第 4 條第 2 項")}
+        ${check("criminal", s.criminal, "刑事案件（法院或檢察署行使國家刑罰權）→ 免費", "第 5 條")}
+      </div>`;
+    }
+    case "courtB": return `
+      <p class="say">建物法院囑託（會勘、查封、測地上物）：<b>每棟預收 5,000 元</b>。</p>
+      <div class="q-row"><span class="lbl">幾棟</span>${stepper("bldN", s.bldN, "棟", 1)}</div>
+      <div class="opts">
+        ${check("double", s.double, "來文要求收件後 15 日內辦完 → 費用加倍", "第 4 條第 2 項")}
+        ${check("criminal", s.criminal, "刑事案件（法院或檢察署行使國家刑罰權）→ 免費", "第 5 條")}
+      </div>
+      <p class="say" style="font-size:14px">來文如果有「繪製分割方案」，請改按「土地法院囑託」。</p>`;
+    case "ask": return `
+      <p class="warn">⚠ 這個申請原因的收費方式<b>還沒確定</b>${it.hint ? `（${esc(it.hint)}）` : ""}。請先問承辦或主管，再把金額填在下面。</p>
+      <div class="q-row"><span class="lbl">要收多少</span><input class="money-in" type="number" inputmode="numeric" min="0" data-k="amt" value="${esc(s.amt)}" placeholder="0"><span class="unit">元</span></div>
+      <div class="q-row"><span class="lbl">問了誰／備註</span><input class="text-in" data-k="memo" value="${esc(s.memo)}" placeholder="例：問過王課長，免費"></div>`;
+  }
+}
+
+function lawKeys(it) {
+  const set = new Set(it.law || []);
+  calc(it).forEach(l => (l.law || []).forEach(k => set.add(k)));
+  if (it.kind === "jianjie") ["t1_1", "inJianjie"].forEach(k => set.add(k));
+  if (it.kind === "court" || it.kind === "courtB") ["inCourt", "s4", "s5"].forEach(k => set.add(k));
+  return [...set];
+}
+
+function renderCards() {
+  const box = document.getElementById("cards");
+  box.querySelectorAll(".card").forEach(c => c.remove());
+  document.getElementById("emptyHint").hidden = order.length > 0;
+  order.forEach(id => {
+    const it = ITEMS.find(i => i.id === id);
+    const cls = it.kind === "ask" ? "ask" : it.g;
+    const c = $(`<article class="card ${cls}" id="card-${id}">
+      <div class="card-h"><h2>② ${esc(it.name)}</h2><button class="btn law" data-why="${id}">📖 依據</button><span class="sub" data-sub="${id}">0</span><button class="x" title="移除" aria-label="移除">✕</button></div>
+      <div class="card-b">${body(it)}</div></article>`);
+    c.querySelector(".x").onclick = () => toggle(id);
+    c.querySelector("[data-why]").onclick = () => showLaw(`${it.name} 的收費依據`, lawKeys(it), [it]);
+    wire(c, it);
+    box.appendChild(c);
+  });
+}
+
+function wire(c, it) {
+  const s = state[it.id];
+  const rer = () => { const y = window.scrollY; renderCards(); window.scrollTo(0, y); update(); };
+  c.querySelectorAll("[data-step]").forEach(b => b.onclick = () => {
+    const k = b.dataset.step, inp = c.querySelector(`input[data-k="${k}"]`);
+    s[k] = Math.max(+inp.min || 0, (parseInt(s[k]) || 0) + +b.dataset.d); inp.value = s[k]; update();
+  });
+  c.querySelectorAll("input[data-k], textarea[data-k]").forEach(inp => inp.oninput = () => {
+    const k = inp.dataset.k;
+    s[k] = inp.type === "number" && inp.closest(".stepper") ? Math.max(+inp.min || 0, parseInt(inp.value) || 0) : inp.value;
+    if (k === "text" && s.auto !== false) {
+      const hb = kwHits(s.text, KW_BLD).length > 0, hs = kwHits(s.text, KW_SPLIT).length > 0;
+      if (hb !== s.useBld || hs !== s.useSplit) { s.useBld = hb; s.useSplit = hs; const pos = inp.selectionStart; rer(); const t = document.querySelector(`#card-${it.id} textarea`); t.focus(); t.setSelectionRange(pos, pos); return; }
+      const hits = c.querySelector(".hits"); const tmp = $(`<div>${body(it)}</div>`); hits.innerHTML = tmp.querySelector(".hits").innerHTML;
+    }
+    update();
+  });
+  c.querySelectorAll("input[data-li]").forEach(inp => inp.oninput = () => { s[inp.dataset.li][+inp.dataset.i] = inp.value; update(); });
+  c.querySelectorAll("[data-add]").forEach(b => b.onclick = () => { s[b.dataset.add].push(""); rer(); const l = c.ownerDocument.querySelectorAll(`#card-${it.id} [data-li="${b.dataset.add}"]`); l[l.length - 1]?.focus(); });
+  c.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { s[b.dataset.del].splice(+b.dataset.i, 1); rer(); });
+  c.querySelectorAll("input[type=radio]").forEach(r => r.onchange = () => { s[r.name] = r.value; rer(); });
+  c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { s[r.dataset.ck] = r.checked; if (r.dataset.ck === "useBld" || r.dataset.ck === "useSplit") s.auto = false; rer(); });
+}
+
+function allLines() {
+  return order.map(id => { const it = ITEMS.find(i => i.id === id); return { it, lines: calc(it) }; });
+}
+
+function update() {
+  let total = 0; const mini = document.getElementById("mini"); mini.innerHTML = "";
+  allLines().forEach(({ it, lines }) => {
+    const sub = lines.reduce((a, b) => a + b.a, 0); total += sub;
+    const subEl = document.querySelector(`[data-sub="${it.id}"]`); if (subEl) subEl.textContent = fmt(sub) + " 元";
+    const flag = lines.some(l => l.flag);
+    mini.appendChild($(`<li class="${flag ? "flag" : ""}"><span>${esc(it.name)}${flag ? " ⚠" : ""}</span><span>${fmt(sub)}</span></li>`));
+    // 面積級距提示
+    const s = state[it.id];
+    ["lots"].forEach(k => (s[k] || []).forEach((v, i) => { const el = document.querySelector(`#card-${it.id} [data-tier="${k}-${i}"]`); if (el) { const a = parseFloat(v); const tb = it.kind === "jianjie" ? RATES.jianjieBase : RATES.splitBase; el.innerHTML = a > 0 ? `${RATES.tierNames[tierOf(a)]} → 基本費 <b>${fmt(tb[tierOf(a)])}</b>` : "填面積就會自動判斷"; } }));
+    (s.floors || []).forEach((v, i) => { const el = document.querySelector(`#card-${it.id} [data-tier="floors-${i}"]`); if (el) { const a = parseFloat(v); el.innerHTML = a > 0 ? `→ <b>${units50(a)}</b> 單位` : "每 50 ㎡ 一單位"; } });
+    const at = document.querySelector(`#card-${it.id} [data-tier="area"]`); if (at) { const a = parseFloat(s.area); at.innerHTML = a > 0 ? `${RATES.tierNames[tierOf(a)]} → 基本費 <b>${fmt(RATES.splitBase[tierOf(a)])}</b>` : ""; }
+  });
+  if (!order.length) mini.innerHTML = `<li><span style="color:var(--muted)">還沒選申請原因</span><span></span></li>`;
+  document.getElementById("sum").textContent = fmt(total);
+  document.getElementById("sumCn").textContent = "新臺幣" + cnMoney(total) + "元整";
+  save();
+  return total;
+}
+
+function cnMoney(n) {
+  if (!n) return "零";
+  const d = "零壹貳參肆伍陸柒捌玖", u = ["", "拾", "佰", "仟"], big = ["", "萬", "億"];
+  let s = "", i = 0, low = -1;
+  while (n > 0) {
+    const part = n % 10000; let p = "", zero = false;
+    for (let j = 3; j >= 0; j--) { const x = Math.floor(part / 10 ** j) % 10; if (x) { if (zero) p += "零"; p += d[x] + u[j]; zero = false; } else if (p) zero = true; }
+    if (p) s = p + big[i] + (s && (low < 1000 || part % 10 === 0) ? "零" : "") + s;
+    if (part || !s) low = part; else low = 0;
+    n = Math.floor(n / 10000); i++;
+  }
+  return s.replace(/零+$/, "");
+}
+
+/* ---- 依據對話框 ---- */
+const dlg = document.getElementById("dlg");
+function lawHTML(keys) {
+  return keys.filter(k => LAW[k]).map(k => { const L = LAW[k]; return `<div class="law${L.inhouse ? " inhouse" : ""}"><h3>${L.inhouse ? "🏢 " : "📜 "}${L.h}</h3>${L.p.map(p => `<p>${p}</p>`).join("")}</div>`; }).join("");
+}
+function showLaw(title, keys, items) {
+  document.getElementById("dlgTitle").textContent = title;
+  let h = "";
+  if (items && items.length) {
+    h += items.map(it => { const ls = calc(it); return `<div><h3 style="margin:0 0 6px">${esc(it.name)}：怎麼算出來的</h3><div class="tscroll"><table class="t"><tr><th>項目</th><th>算式</th><th>金額</th></tr>${ls.map(l => `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td>${fmt(l.a)}</td></tr>`).join("") || `<tr><td colspan="3">還沒填數字</td></tr>`}</table></div></div>`; }).join("");
+  }
+  h += lawHTML(keys);
+  h += `<p style="font-size:13px;color:var(--muted);margin:0">📜＝法規條文摘要（土地複丈費及建築改良物測量費收費標準）；🏢＝本所收件作法。</p>`;
+  document.getElementById("dlgBody").innerHTML = h;
+  dlg.showModal();
+}
+document.getElementById("btnWhy").onclick = () => {
+  const its = order.map(id => ITEMS.find(i => i.id === id));
+  if (!its.length) return showAll();
+  const keys = [...new Set(its.flatMap(lawKeys))];
+  showLaw("這次為什麼收這個數？", keys, its);
+};
+function showAll() {
+  document.getElementById("dlgTitle").textContent = "收費標準總表";
+  const T = RATES.tierNames;
+  document.getElementById("dlgBody").innerHTML = `
+    <div class="tscroll"><table class="t"><tr><th>土地（附表一）</th>${T.map(t => `<th>${t}</th>`).join("")}<th>施測費</th></tr>
+      <tr><td>鑑界（每筆）</td>${RATES.jianjieBase.map(x => `<td>${fmt(x)}</td>`).join("")}<td>1,000／每 5 點</td></tr>
+      <tr><td>分割、界址調整、新登記、自然增加、浮覆、坍沒、他項權利複丈</td>${RATES.splitBase.map(x => `<td>${fmt(x)}</td>`).join("")}<td>500／每條線</td></tr>
+      <tr><td>位置或他項權利勘查</td><td colspan="5">每筆 500</td></tr>
+      <tr><td>合併</td><td colspan="5">免費</td></tr></table></div>
+    <div class="tscroll"><table class="t"><tr><th>建物</th><th>收費</th></tr>
+      <tr><td>第一次測量（§282 我們測）</td><td>位置圖 4,000／棟＋平面圖 1,000／每建號每層每 50 ㎡</td></tr>
+      <tr><td>第一次測量（§282-1 有測繪資料）</td><td>每建號 200＋800（沒附資料＋4,000／棟）</td></tr>
+      <tr><td>第一次測量（§282-2 自行繪製）</td><td>每建號 200（沒電子檔＋600；沒附資料＋4,000／棟）</td></tr>
+      <tr><td>建物分割</td><td>分割後 1,000／每 50 ㎡＋800／建號</td></tr>
+      <tr><td>建物合併</td><td>合併前 400／每 50 ㎡＋400／建號</td></tr>
+      <tr><td>部分滅失</td><td>存餘 1,000／每 50 ㎡＋800／建號</td></tr>
+      <tr><td>全部滅失、基地號勘查、門牌勘查</td><td>500／建號</td></tr></table></div>
+    <div class="tscroll"><table class="t"><tr><th>法院囑託（本所作法）</th><th>預收</th></tr>
+      <tr><td>會勘、勘測地上物、查封（僅測建物）</td><td>5,000／棟</td></tr>
+      <tr><td>繪製分割方案</td><td>分割基本費（看分割前每筆面積）</td></tr>
+      <tr><td>限期 15 日內辦理</td><td>加倍</td></tr>
+      <tr><td>刑事案件</td><td>免費</td></tr></table></div>
+    ${lawHTML(Object.keys(LAW))}`;
+  dlg.showModal();
+}
+document.getElementById("btnAllLaw").onclick = showAll;
+
+/* ---- 列印 ---- */
+document.getElementById("btnPrint").onclick = () => {
+  const total = update(); const c = caseInfo(); const d = new Date();
+  const ds = `${d.getFullYear() - 1911} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  let rows = "";
+  allLines().forEach(({ it, lines }) => {
+    const sub = lines.reduce((a, b) => a + b.a, 0);
+    rows += `<tr class="grp-row"><td colspan="3">${esc(it.name)}</td><td class="n">${fmt(sub)}</td></tr>`;
+    lines.forEach(l => rows += `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td class="basis">${(l.law || []).filter(k => LAW[k]).map(k => esc(LAW[k].h)).join("<br>")}</td><td class="n">${fmt(l.a)}</td></tr>`);
+  });
+  const flagged = allLines().some(x => x.lines.some(l => l.flag));
+  document.getElementById("printArea").innerHTML = `<div class="rp">
+    <h1>測量案件預收費用明細</h1>
+    <div class="meta"><div>收件字號：${esc(c.no) || "＿＿＿＿＿＿＿＿"}</div><div>試算時間：${ds}</div>
+      <div>申請人：${esc(c.who) || "＿＿＿＿＿＿＿＿"}</div><div>坐落：${esc(c.where) || "＿＿＿＿＿＿＿＿"}</div></div>
+    <table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="4">尚未選擇申請原因</td></tr>`}
+    <tr class="tot"><td colspan="3">應預收合計　新臺幣 ${cnMoney(total)} 元整</td><td class="n">${fmt(total)}</td></tr></tbody></table>
+    <div class="notes">
+      ${flagged ? "<p>⚠ 本明細含「收費方式待確認」之項目，金額為收件人員手動輸入。</p>" : ""}
+      <p>一、本表為收件預收試算，線段數、點數、面積單位以實際測量結果為準，多退少補。</p>
+      <p>二、依據《土地複丈費及建築改良物測量費收費標準》（112 年 5 月 1 日施行）。成果圖等工本費另計（電腦列印每張 20 元）。</p>
+      <p>三、複丈或測量日期前撤回者，依第 8 條扣除已支出費用（已赴現場整備 800 元；未赴現場 300 元）後退還。</p>
+    </div>
+    <div class="sign"><span>收件人員：＿＿＿＿＿＿＿＿</span><span>申請人確認：＿＿＿＿＿＿＿＿</span></div></div>`;
+  window.print();
+};
+
+/* ---- 其他 ---- */
+document.getElementById("btnReset").onclick = () => {
+  if (!confirm("清空全部，重新開始？")) return;
+  for (const k in state) delete state[k]; order = [];
+  caseNo.value = caseWho.value = caseWhere.value = "";
+  renderTiles(); renderCards(); update();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+document.getElementById("btnTheme").onclick = () => {
+  const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem(LS + "-theme", r.dataset.theme); } catch (e) {}
+};
+[caseNo, caseWho, caseWhere].forEach(i => i.oninput = save);
+
+(function init() {
+  try { const t = localStorage.getItem(LS + "-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  try {
+    const d = JSON.parse(localStorage.getItem(LS) || "null");
+    if (d && Array.isArray(d.order)) {
+      d.order.forEach(id => { const it = ITEMS.find(i => i.id === id); if (it && d.state[id]) { state[id] = { ...defaults(it), ...d.state[id] }; order.push(id); } });
+      if (d.c) { caseNo.value = d.c.no || ""; caseWho.value = d.c.who || ""; caseWhere.value = d.c.where || ""; }
+    }
+  } catch (e) {}
+  renderTiles(); renderCards(); update();
+})();
+</script>
+</body>
+</html>
