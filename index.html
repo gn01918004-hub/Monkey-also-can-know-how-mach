@@ -104,6 +104,8 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .reg-row .hint2 { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin-top: -4px; }
 @media (max-width: 640px) { .reg-row { grid-template-columns: minmax(0, 1fr) auto; } .reg-row select { grid-column: 1 / -1; } }
 .sub-h { margin: 4px 0 0; font-size: 16px; }
+.date-in { flex: 0 1 12em !important; font: 700 17px var(--num); background: #fff7d6 !important; color: #1d2730; }
+.date-in.bad { border-color: var(--ask); box-shadow: 0 0 0 3px var(--ask-soft); }
 .split { display: grid; gap: 4px; font-size: 15px; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
 .split div { display: flex; justify-content: space-between; gap: 10px; }
 .split div span:last-child { font-family: var(--num); font-weight: 700; }
@@ -277,8 +279,13 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.4";
+const VERSION = "0.5";
 const CHANGES = [
+  { v: "0.5", d: "115.11.18", items: [
+    "逾期罰鍰改成自動算：填登記原因發生日、收件日（繼承可勾 6 個月期限，可填扣除天數）",
+    "免費、洽課長的項目移到各組最後面；「位置勘查（指界）」移到鑑界旁邊",
+    "工本費選單最後加上少用的「電傳資訊閱覽費」10 元／筆（棟）",
+  ] },
   { v: "0.4", d: "115.11.18", items: [
     "新增「登記規費」：登記費（千分之一／千分之二）、逾期罰鍰、書狀費、謄本工本費、閱覽費",
     "登記規費跟測量費分開列、分開小計，最後一起加總，列印也分兩張表",
@@ -372,13 +379,10 @@ const LAW = {
    ===================================================================== */
 const ITEMS = [
   { id: "jianjie",  name: "鑑界",       g: "land", kind: "jianjie", web: true, sub: "先用網站算" },
+  { id: "posLook",  name: "位置勘查",   g: "land", kind: "per500", law: ["t1_2"], sub: "指界・每筆 500", unitWord: "筆地號" },
   { id: "split",    name: "土地分割",   g: "land", kind: "lines", web: true, sub: "先用網站算", law: ["t1_4", "t1_n", "inSplit", "s6"], baseNote: "分割前每筆地號面積", pts: true, half: true },
-  { id: "merge",    name: "土地合併",   g: "land", kind: "free",  law: ["t1_3"], freeText: "土地合併 <b>免納複丈費</b>，不用收錢。" },
-  { id: "courtL",   name: "土地法院囑託", g: "court", kind: "court" },
   { id: "jingfen",  name: "逕為分割",   g: "land", kind: "zheng", sub: "徵收作業費基準" },
-  { id: "useArea",  name: "使用面積測量", g: "land", kind: "boss" },
   { id: "newReg",   name: "新登記",     g: "land", kind: "lines", law: ["t1_6", "inSplit"], baseNote: "複丈後每筆地號面積", sub: "未登記土地" },
-  { id: "fix",      name: "更正",       g: "land", kind: "free", law: ["inFree"], sub: "免費", freeText: "更正 <b>不收費</b>。" },
   { id: "single",   name: "單筆建檔",   g: "land", kind: "lines", law: ["t1_6", "inSplit"], baseNote: "複丈後每筆地號面積", sub: "＝新登記" },
   { id: "tanmo",    name: "坍沒建檔",   g: "land", kind: "lines", law: ["t1_8", "inSplit"], baseNote: "坍沒後存餘每筆地號面積", sub: "依附表一項次八" },
   { id: "fufu",     name: "浮覆建檔",   g: "land", kind: "lines", law: ["t1_7", "inSplit"], baseNote: "複丈後每筆地號面積", sub: "依附表一項次七" },
@@ -386,20 +390,23 @@ const ITEMS = [
   { id: "adjust",   name: "界址調整",   g: "land", kind: "adjust" },
   { id: "rejian",   name: "再鑑界",     g: "land", kind: "jianjie", web: true, sub: "比照鑑界" },
   { id: "other",    name: "他項權利",   g: "land", kind: "other" },
+  { id: "merge",    name: "土地合併",   g: "land", kind: "free",  law: ["t1_3"], freeText: "土地合併 <b>免納複丈費</b>，不用收錢。" },
+  { id: "fix",      name: "更正",       g: "land", kind: "free", law: ["inFree"], sub: "免費", freeText: "更正 <b>不收費</b>。" },
+  { id: "dingzh",   name: "訂正",       g: "land", kind: "free", law: ["inFree"], sub: "免費", freeText: "訂正 <b>不收費</b>。" },
+  { id: "useArea",  name: "使用面積測量", g: "land", kind: "boss" },
   { id: "landElse", name: "土地其他",   g: "land", kind: "boss" },
-  { id: "posLook",  name: "位置勘查",   g: "land", kind: "per500", law: ["t1_2"], sub: "指界・每筆 500", unitWord: "筆地號" },
-  { id: "bFirst",   name: "建物第一次", g: "bld",  kind: "bfirst" },
-  { id: "bSplit",   name: "建物分割",   g: "bld",  kind: "bsplit" },
-  { id: "bMerge",   name: "建物合併",   g: "bld",  kind: "bmerge" },
+  { id: "courtL",   name: "土地法院囑託", g: "court", kind: "court" },
   { id: "courtB",   name: "建物法院囑託", g: "court", kind: "courtB" },
+  { id: "bFirst",   name: "建物第一次", g: "bld",  kind: "bfirst" },
   { id: "extend",   name: "增建",       g: "bld",  kind: "bfirst", sub: "比照建物第一次" },
   { id: "rebuild",  name: "改建",       g: "bld",  kind: "bfirst", sub: "比照建物第一次" },
+  { id: "bSplit",   name: "建物分割",   g: "bld",  kind: "bsplit" },
+  { id: "bMerge",   name: "建物合併",   g: "bld",  kind: "bmerge" },
   { id: "loss",     name: "滅失",       g: "bld",  kind: "loss" },
   { id: "baseNo",   name: "基地號勘查", g: "bld",  kind: "per500", law: ["t3_4"] },
   { id: "doorNo",   name: "門牌勘查",   g: "bld",  kind: "per500", law: ["t3_4"] },
   { id: "bldElse",  name: "建物其他",   g: "bld",  kind: "boss" },
   { id: "landUse",  name: "地目變更",   g: "old",  kind: "landuse", sub: "早期項目" },
-  { id: "dingzh",   name: "訂正",       g: "land", kind: "free", law: ["inFree"], sub: "免費", freeText: "訂正 <b>不收費</b>。" },
 ];
 const GROUPS = [
   { g: "land",  t: "🌱 土地" },
@@ -780,9 +787,9 @@ function wire(c, it) {
    登記規費（跟測量費分開列，一起加總）
    ===================================================================== */
 const REG_TYPES = [
-  { id: "change",   n: "權利變更登記（買賣、贈與、繼承、拍賣、共有物分割…）", r: 0.001, v: "權利價值", hint: "土地看申報地價；建物看稅捐機關核定繳（免）納契稅的價值（繼承：遺產稅核定價值，沒有就看房屋現值）。", law: ["rg76", "rgS5"] },
-  { id: "other",    n: "他項權利設定、移轉登記（抵押權、地上權…）", r: 0.001, v: "權利價值", hint: "看申請書上寫的權利價值（抵押權看擔保債權總金額）。", law: ["rg76"] },
-  { id: "otherChg", n: "他項權利內容變更登記", r: 0.001, v: "增加的權利價值", hint: "只有權利價值「增加的部分」要收，其他變更免費。沒有增加就填 0。", law: ["rg76"] },
+  { id: "change",   late: true, n: "權利變更登記（買賣、贈與、繼承、拍賣、共有物分割…）", r: 0.001, v: "權利價值", hint: "土地看申報地價；建物看稅捐機關核定繳（免）納契稅的價值（繼承：遺產稅核定價值，沒有就看房屋現值）。", law: ["rg76", "rgS5"] },
+  { id: "other",    late: true, n: "他項權利設定、移轉登記（抵押權、地上權…）", r: 0.001, v: "權利價值", hint: "看申請書上寫的權利價值（抵押權看擔保債權總金額）。", law: ["rg76"] },
+  { id: "otherChg", late: true, n: "他項權利內容變更登記", r: 0.001, v: "增加的權利價值", hint: "只有權利價值「增加的部分」要收，其他變更免費。沒有增加就填 0。", law: ["rg76"] },
   { id: "bfirst",   n: "建物所有權第一次登記", r: 0.002, v: "使用執照工程造價", hint: "看使用執照上的工程造價。區分所有分開申請：總造價 ÷ 總面積 × 該戶勘測面積。", law: ["rg65", "rgS2"] },
   { id: "total",    n: "土地總登記（新登記土地所有權第一次登記）", r: 0.002, v: "申報地價或權利價值", hint: "新登記土地以補辦規定地價時的申報地價為準。", law: ["rg65", "rgS1"] },
   { id: "free",     n: "免費：標示變更、更正、消滅、塗銷、住址變更、限制登記", r: 0, v: "", hint: "這些登記不收登記費。", law: ["rgFree"] },
@@ -803,35 +810,73 @@ const COPY_TYPES = [
   { id: "idx",  n: "異動索引查詢閱覽（限時 10 分鐘）", p: 15, u: "次" },
   { id: "scr",  n: "各項查詢畫面列印", p: 20, u: "張" },
   { id: "lst",  n: "土地建物異動清冊影印", p: 10, u: "張" },
+  { id: "tele", n: "（少用）電子處理之土地或建物參考資訊電傳資訊閱覽", p: 10, u: "筆（棟）" },
 ];
 Object.assign(LAW, {
   rg65: { h: "土地法 第 65 條　登記費千分之二", p: ["土地總登記，應由權利人按申報地價或土地他項權利價值，繳納登記費千分之二。建物所有權第一次登記依使用執照所列工程造價千分之二計收。"] },
   rg76: { h: "土地法 第 76 條　變更登記千分之一", p: ["聲請為土地權利變更登記，應由權利人按申報地價或權利價值千分之一繳納登記費。", "他項權利內容變更登記：除權利價值增加部分按千分之一計收外，其餘免費。"] },
   rg67: { h: "土地法 第 67 條　書狀費", p: ["土地所有權狀及他項權利證明書，應繳納書狀費，每張新臺幣 80 元。"] },
+  rg73b: { h: "罰鍰期限怎麼算（補充規定第 8 點、行政程序法第 48 條）", p: ["申請期限：權利變更登記自登記原因發生之日起 1 個月內；繼承登記自繼承開始之日起 6 個月內。", "期限自登記原因發生之次日起算，算到末月與起算日相當日的前一日（沒有相當日就是該月最後一天）；末日遇假日順延。", "可扣除期間：向稅捐機關申報到限繳日、查欠稅費期間、行政爭訟期間等，可全數扣除。", "逾期未超過 1 個月免罰；超過 1 個月起，每逾 1 個月罰登記費 1 倍，最高 20 倍。罰鍰只算權利變更、他項權利登記的登記費。"] },
   rg73: { h: "土地法 第 73 條　逾期罰鍰", p: ["逾期申請登記者，每逾一個月得處應納登記費額一倍之罰鍰，但最高不得超過二十倍。", "補充規定第 8 點：逾法定登記期限未超過一個月者，仍免予罰鍰；超過一個月，始計收登記費罰鍰。"] },
   rgS1: { h: "土地登記規費及其罰鍰計收補充規定 第 1 點", p: ["新登記土地辦理所有權第一次登記之登記費，應以該土地依平均地權條例施行細則第二十五條第一項規定補辦規定地價時之申報地價為準計收。"] },
   rgS2: { h: "土地登記規費及其罰鍰計收補充規定 第 2～4 點", p: ["區分所有建物分別計收時，以工程造價之總價除以使用執照所列建物總面積，所得之單位工程造價，乘以建物勘測面積計算之；使用執照附表已載有各區分所有建物之面積及造價者，得逕依其所列造價計收。", "使用執照上各區分所有建物全部一次申請登記者，依使用執照所列工程造價之總價計收登記費。"] },
   rgS5: { h: "土地登記規費及其罰鍰計收補充規定 第 5 點", p: ["所有權移轉登記：以申報地價、稅捐機關核定繳（免）納契稅之價值為準。", "典權設定：以權利價值、稅捐機關核定繳（免）納契稅之價值為準。", "繼承登記：土地以申報地價；建物以稅捐機關核定繳（免）納遺產稅之價值為準，無核定價值者依房屋稅核課價值為準。", "共有物分割登記：以分割後各自取得部分之申報地價、稅捐機關核定之繳（免）納契稅之價值計收。", "經法院拍賣之土地，以權利移轉證明書上之日期當期申報地價為準（拍定價額低於申報地價者，以拍定價額為準）；法院拍賣之建物，依向稅捐單位申報之契稅價計收。", "信託移轉登記：以信託或信託內容變更契約書所載權利價值為準。"] },
   rgFree: { h: "登記費免費項目", p: ["標示變更登記、更正登記、消滅登記、塗銷登記、住址變更登記、限制登記：免費。", "補充規定第 6 點：合於土地法第 76 條第 2 項、第 78 條及土地登記規則第 46 條規定情形者免納登記費。"] },
+  rgRef: { h: "土地或建物參考資訊閱覽費及列印費收費標準 第 2 條", p: ["電子處理之土地或建物參考資訊到所閱覽費：每筆（棟）每五分鐘 20 元，不足五分鐘以五分鐘計。", "電子處理之土地或建物參考資訊電傳資訊閱覽費：每筆（棟）10 元。", "土地或建物參考資訊列印費：每張 20 元。"] },
   rgCopy: { h: "書狀費、工本費及閱覽費收費標準", p: ["登記（簿）謄本：人工影印每張 10 元、電腦列印每張 20 元。地籍圖謄本：人工影印每張 15 元、人工描繪每張 40 元、電腦列印每張 20 元。", "登記申請書及附件影印每張 10 元；閱覽、抄錄或攝影每案 75 元（限時 20 分鐘）。各類登記專簿影印每張 10 元；閱覽每案 75 元（限時 20 分鐘）。", "地籍圖藍曬圖或複製圖閱覽每張 10 元（限時 20 分鐘）。電子地籍資料到所查詢閱覽每筆（棟）20 元（限時 5 分鐘）。異動索引查詢閱覽每次 15 元（限時 10 分鐘）。查詢畫面列印每張 20 元。土地建物異動清冊影印每張 10 元。"] },
 });
 let reg = null; // null＝沒加入登記規費
-const regDefault = () => ({ rows: [{ t: "change", v: "" }], copies: [{ t: "bk", n: 1 }], fine: 0 });
+const toROC = d => `${d.getFullYear() - 1911}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+const WEEK = "日一二三四五六";
+const regDefault = () => ({ rows: [{ t: "change", v: "" }], copies: [{ t: "bk", n: 1 }], cause: "", recv: toROC(new Date()), inherit: false, deduct: 0 });
+/* 民國日期：115.1.5、115/01/05、1150105 都可以；年份大於 1911 當西元 */
+function parseROC(str) {
+  const t = String(str || "").trim(); if (!t) return null;
+  let y, m, d; const parts = t.split(/[^0-9]+/).filter(Boolean);
+  if (parts.length === 3) [y, m, d] = parts.map(Number);
+  else if (parts.length === 1 && /^\d{6,8}$/.test(parts[0])) { const x = parts[0]; d = +x.slice(-2); m = +x.slice(-4, -2); y = +x.slice(0, -4); }
+  else return null;
+  if (y < 1911) y += 1911;
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d ? dt : null;
+}
+/* 行政程序法第 48 條：以月計之期間，以末月與起算日相當日之前一日為末日；無相當日者以該月末日為末日 */
+function addMonths(d, n) {
+  const y = d.getFullYear(), m = d.getMonth() + n, last = new Date(y, m + 1, 0).getDate();
+  return new Date(y, m, Math.min(d.getDate(), last));
+}
+function fineInfo() {
+  if (!reg) return null;
+  const cause = parseROC(reg.cause), recv = parseROC(reg.recv);
+  if (!reg.cause) return { k: 0, msg: "沒填登記原因發生日：不算罰鍰。" };
+  if (!cause) return { k: 0, bad: "cause", msg: "登記原因發生日看不懂，請照「115.1.5」這樣填。" };
+  if (!recv) return { k: 0, bad: "recv", msg: "收件日看不懂，請照「115.11.18」這樣填。" };
+  const M = reg.inherit ? 6 : 1;
+  let end = addMonths(cause, M);                     // 次日起算 → 相當日前一日＝原因發生日的同一日
+  if (reg.deduct > 0) end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + reg.deduct);
+  let moved = "";
+  while (end.getDay() === 0 || end.getDay() === 6) { end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1); moved = "（末日遇週末順延）"; }
+  const base = `申請期限 ${M} 個月${reg.deduct > 0 ? `＋扣除 ${reg.deduct} 天` : ""}，期限到 ${toROC(end)}（${WEEK[end.getDay()]}）${moved}`;
+  if (recv <= end) return { k: 0, end, msg: `${base}；收件日 ${toROC(recv)} 沒有逾期，不罰。` };
+  let k = 0; while (k < 20 && recv > addMonths(end, k + 1)) k++;
+  if (!k) return { k: 0, end, msg: `${base}；逾期但沒超過 1 個月，免罰。` };
+  return { k, end, msg: `${base}；收件日 ${toROC(recv)} 已逾期超過 ${k} 個月${k === 20 ? "以上" : ""}，罰登記費 ${k} 倍${k === 20 ? "（最高 20 倍）" : ""}。` };
+}
 function calcReg() {
   if (!reg) return [];
-  const L = []; let feeSum = 0;
+  const L = []; let feeSum = 0, lateSum = 0;
   reg.rows.forEach((r, i) => {
     const T = REG_TYPES.find(x => x.id === r.t); if (!T) return;
     if (!T.r) { L.push({ t: `登記費：${T.n}`, f: "免費", a: 0, law: T.law }); return; }
     const v = parseFloat(r.v); if (!(v > 0)) { L.push({ t: `登記費：${T.n}`, f: `還沒填${T.v}`, a: 0, law: T.law, flag: true }); return; }
-    const a = Math.round(v * T.r); feeSum += a;
+    const a = Math.round(v * T.r); feeSum += a; if (T.late) lateSum += a;
     L.push({ t: `登記費：${T.n}`, f: `${fmt(v)} × ${T.r === 0.002 ? "2／1000" : "1／1000"}`, a, law: T.law });
   });
-  const fx = Math.min(20, Math.max(0, reg.fine | 0));
-  if (fx && feeSum) L.push({ t: `逾期罰鍰（登記費 ${fx} 倍）`, f: `${fmt(feeSum)} × ${fx}`, a: feeSum * fx, law: ["rg73"] });
+  const fi = fineInfo();
+  if (fi && fi.k && lateSum) L.push({ t: `逾期罰鍰（原因發生日 ${reg.cause}，收件日 ${reg.recv}，逾期超過 ${fi.k} 個月）`, f: `${fmt(lateSum)} × ${fi.k} 倍`, a: lateSum * fi.k, law: ["rg73", "rg73b"] });
   reg.copies.forEach(c => {
     const T = COPY_TYPES.find(x => x.id === c.t); if (!T || !(c.n > 0)) return;
-    L.push({ t: T.n, f: `${fmt(T.p)} × ${c.n} ${T.u}`, a: T.p * c.n, law: [T.id === "bk" ? "rg67" : "rgCopy"] });
+    L.push({ t: T.n, f: `${fmt(T.p)} × ${c.n} ${T.u}`, a: T.p * c.n, law: [T.id === "bk" ? "rg67" : T.id === "tele" ? "rgRef" : "rgCopy"] });
   });
   return L;
 }
@@ -855,7 +900,12 @@ function renderReg() {
           <span class="hint2">${T.v ? `填「${esc(T.v)}」：` : ""}${esc(T.hint)}</span>
         </div>`; }).join("")}
         <button class="btn" id="regAdd" style="justify-self:start">＋ 再加一種登記</button></div>
-      <div class="q-row"><span class="lbl">逾期罰鍰（幾倍）</span>${stepper("fine", reg.fine, "倍")}<span class="note">沒逾期填 0。逾期超過 1 個月才罰，每逾 1 個月罰登記費 1 倍，最高 20 倍。</span></div>
+      <h3 class="sub-h">逾期罰鍰（系統自動算，只算變更、他項權利登記）</h3>
+      <div class="q-row"><span class="lbl">登記原因發生日</span><input class="text-in date-in" id="regCause" data-rd="cause" value="${esc(reg.cause)}" placeholder="例：115.9.1（買賣看契約日）" inputmode="numeric"><span class="unit" data-rdp="cause"></span></div>
+      <div class="q-row"><span class="lbl">收件日</span><input class="text-in date-in" id="regRecv" data-rd="recv" value="${esc(reg.recv)}" placeholder="例：115.11.18" inputmode="numeric"><span class="unit" data-rdp="recv"></span></div>
+      <div class="opts">${check("inherit", reg.inherit, "這是繼承登記（期限 6 個月）", "繼承登記自繼承開始之日起 6 個月內申請")}</div>
+      <div class="q-row"><span class="lbl">可扣除天數</span>${stepper("deduct", reg.deduct, "天")}<span class="note">一般填 0。申報稅款到限繳日、查欠稅費、行政爭訟等期間可扣除；期限末日剛好是國定假日，也請加 1 天。</span></div>
+      <p class="say" id="fineMsg"></p>
       <h3 class="sub-h">② 書狀費、工本費、閱覽費</h3>
       <div class="area-list">${reg.copies.map((x, i) => `
         <div class="reg-row">
@@ -881,14 +931,16 @@ function renderReg() {
     const v = Math.max(0, (parseInt(inp.value) || 0) + +b.dataset.d); inp.value = v; setRegKey(k, v); update();
   });
   c.querySelectorAll(".stepper input[data-k]").forEach(inp => inp.oninput = () => { setRegKey(inp.dataset.k, Math.max(0, parseInt(inp.value) || 0)); update(); });
+  c.querySelectorAll("[data-rd]").forEach(inp => inp.oninput = () => { reg[inp.dataset.rd] = inp.value; update(); });
+  c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { reg[r.dataset.ck] = r.checked; update(); });
   box.appendChild(c);
 }
-function setRegKey(k, v) { if (k === "fine") reg.fine = Math.min(20, v); else reg.copies[+k.slice(1)].n = v; }
+function setRegKey(k, v) { if (k === "deduct") reg.deduct = Math.min(3650, v); else reg.copies[+k.slice(1)].n = v; }
 function showRegLaw() {
   const ls = calcReg();
   document.getElementById("dlgTitle").textContent = "登記規費的收費依據";
   document.getElementById("dlgBody").innerHTML = `<div><h3 style="margin:0 0 6px">怎麼算出來的</h3><div class="tscroll"><table class="t"><tr><th>項目</th><th>算式</th><th>金額</th></tr>${ls.map(l => `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td>${fmt(l.a)}</td></tr>`).join("") || `<tr><td colspan="3">還沒填</td></tr>`}</table></div></div>` +
-    lawHTML(["rg65", "rg76", "rgS5", "rgS1", "rgS2", "rgFree", "rg73", "rg67", "rgCopy"]);
+    lawHTML(["rg65", "rg76", "rgS5", "rgS1", "rgS2", "rgFree", "rg73", "rg73b", "rg67", "rgCopy", "rgRef"]);
   dlg.showModal();
 }
 document.getElementById("btnReg").onclick = () => { reg = reg ? null : regDefault(); renderReg(); update(); if (reg) document.getElementById("card-reg").scrollIntoView({ behavior: "smooth", block: "start" }); };
@@ -923,6 +975,9 @@ function update() {
     sp.hidden = false;
     const rs = document.getElementById("regSub"); if (rs) rs.textContent = fmt(regSum) + " 元";
     reg.rows.forEach((r, i) => { const el = document.querySelector(`[data-ro="${i}"]`); const T = REG_TYPES.find(x => x.id === r.t); const v = parseFloat(r.v); if (el) el.textContent = T && T.r && v > 0 ? `= ${fmt(Math.round(v * T.r))} 元` : ""; });
+    const fi = fineInfo(), fm = document.getElementById("fineMsg");
+    if (fm && fi) { const any = reg.rows.some(r => (REG_TYPES.find(x => x.id === r.t) || {}).late); fm.innerHTML = (any ? "" : "（目前選的登記種類沒有申請期限，不算罰鍰）<br>") + esc(fi.msg) + (fi.k && any ? ` <b>罰鍰 ${fmt(calcReg().filter(l => /^逾期罰鍰/.test(l.t)).reduce((a, b) => a + b.a, 0))} 元</b>` : ""); }
+    ["cause", "recv"].forEach(k => { const el = document.querySelector(`[data-rdp="${k}"]`), inp = document.querySelector(`[data-rd="${k}"]`); if (!el) return; const d = parseROC(reg[k]); el.textContent = d ? `＝ 民國 ${d.getFullYear() - 1911} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日（${WEEK[d.getDay()]}）` : reg[k] ? "⚠ 看不懂" : ""; inp.classList.toggle("bad", !!reg[k] && !d); });
     reg.copies.forEach((x, i) => { const el = document.querySelector(`[data-co="${i}"]`); const T = COPY_TYPES.find(t => t.id === x.t); if (el && T) el.textContent = `= ${fmt(T.p * (x.n || 0))} 元`; });
   } else sp.hidden = true;
   document.getElementById("sum").textContent = fmt(total);
