@@ -110,6 +110,8 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .split div { display: flex; justify-content: space-between; gap: 10px; }
 .split div span:last-child { font-family: var(--num); font-weight: 700; }
 .split .r span { color: var(--reg); }
+#btnCust[aria-pressed="true"] { border-color: var(--land); color: var(--land); background: var(--land-soft); }
+#btnCust[aria-pressed="true"] { border-color: var(--land); color: var(--land); background: var(--land-soft); }
 .mini li.h { border: 0; font-weight: 700; color: var(--muted); font-size: 13px; letter-spacing: .1em; padding-top: 6px; }
 
 /* ---- 第 2 步：填數字卡片 ---- */
@@ -254,6 +256,8 @@ table.t td:first-child { text-align: left; }
         <div class="btns">
           <button class="btn big primary" id="btnPrint">🖨 列印明細</button>
           <button class="btn" id="btnWhy">📖 為什麼是這個數？</button>
+          <button class="btn big" id="btnCust">🖥 給民眾看</button>
+          <button class="btn big" id="btnCust">🖥 給民眾看</button>
         </div>
       </div>
       <div class="cn-money" id="sumCn">新臺幣零元整</div>
@@ -279,8 +283,11 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.5";
+const VERSION = "0.6";
 const CHANGES = [
+  { v: "0.6", d: "115.11.18", items: [
+    "新增「🖥 給民眾看」：開一個民眾畫面放到第二螢幕，金額跟著即時更新，民眾看過再列印",
+  ] },
   { v: "0.5", d: "115.11.18", items: [
     "逾期罰鍰改成自動算：填登記原因發生日、收件日（繼承可勾 6 個月期限，可填扣除天數）",
     "免費、洽課長的項目移到各組最後面；「位置勘查（指界）」移到鑑界旁邊",
@@ -983,6 +990,7 @@ function update() {
   document.getElementById("sum").textContent = fmt(total);
   document.getElementById("sumCn").textContent = "新臺幣" + cnMoney(total) + "元整";
   save();
+  pushCustomer(total);
   return total;
 }
 
@@ -1052,6 +1060,56 @@ function showAll() {
 }
 document.getElementById("btnAllLaw").onclick = showAll;
 
+/* ---- 民眾畫面（第二螢幕）：開一個視窗，金額跟著即時更新 ---- */
+let custWin = null;
+function custBody(total) {
+  const meas = allLines(), rl = calcReg();
+  const row = (t, a) => `<tr><td>${esc(t)}</td><td class="n">${fmt(a)}</td></tr>`;
+  let h = "";
+  meas.forEach(({ it, lines }) => { h += `<tr class="g"><td>${esc(it.name)}</td><td class="n">${fmt(lines.reduce((a, b) => a + b.a, 0))}</td></tr>` + lines.map(l => row(l.t, l.a)).join(""); });
+  const measSum = meas.reduce((a, x) => a + x.lines.reduce((p, q) => p + q.a, 0), 0), regSum = rl.reduce((a, b) => a + b.a, 0);
+  let body = `<table>${h || `<tr><td colspan="2" style="color:#777">（還沒有收費項目）</td></tr>`}${reg ? `<tr class="s"><td>測量費小計</td><td class="n">${fmt(measSum)}</td></tr>` : ""}</table>`;
+  if (reg) body += `<h2>登記規費</h2><table>${rl.map(l => row(l.t, l.a)).join("") || `<tr><td colspan="2">（無）</td></tr>`}<tr class="s"><td>登記規費小計</td><td class="n">${fmt(regSum)}</td></tr></table>`;
+  const c = caseInfo();
+  return `<header><h1>本次應繳費用</h1><div class="meta">${c.who ? `申請人：${esc(c.who)}　` : ""}${c.where ? `坐落：${esc(c.where)}` : ""}</div></header>
+    <main>${body}</main>
+    <footer><div class="lbl">應繳合計</div><div class="big">NT$ ${fmt(total)}</div><div class="cn">新臺幣${cnMoney(total)}元整</div>
+    <p>測量費為收件預收金額，實際依測量結果多退少補。有問題請向櫃台人員詢問。</p></footer>`;
+}
+function pushCustomer(total) {
+  const b = document.getElementById("btnCust");
+  if (!custWin || custWin.closed) { custWin = null; if (b) { b.setAttribute("aria-pressed", "false"); b.textContent = "🖥 給民眾看"; } return; }
+  try { custWin.document.getElementById("cv").innerHTML = custBody(total); } catch (e) {}
+  if (b) { b.setAttribute("aria-pressed", "true"); b.textContent = "🖥 民眾畫面已開（再按關閉）"; }
+}
+document.getElementById("btnCust").onclick = async () => {
+  if (custWin && !custWin.closed) { custWin.close(); custWin = null; update(); return; }
+  let feat = "width=1024,height=768";
+  try {   // 有支援就自動放到第二個螢幕（瀏覽器會先問一次「視窗管理」權限）
+    if ("getScreenDetails" in window) {
+      const sd = await window.getScreenDetails();
+      const other = sd.screens.find(x => x !== sd.currentScreen) || sd.screens.find(x => !x.isPrimary);
+      if (other) feat = `left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
+    }
+  } catch (e) {}
+  custWin = window.open("", "monkeyCustomer", feat);
+  if (!custWin) { alert("瀏覽器擋住了彈出視窗，請允許這個網頁開新視窗。"); return; }
+  custWin.document.open();
+  custWin.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>本次應繳費用</title><style>
+    body{margin:0;background:#fff;color:#1d2730;font:26px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;display:flex;flex-direction:column;min-height:100vh}
+    header{padding:24px 40px 8px;border-bottom:3px solid #1f5f8b}h1{margin:0;font-size:46px;letter-spacing:.1em}.meta{font-size:22px;color:#5d6a74}
+    main{flex:1;padding:12px 40px;overflow:auto}h2{font-size:30px;margin:18px 0 6px;color:#6b3fa0}
+    table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px dotted #bbb;vertical-align:top}
+    td.n{text-align:right;white-space:nowrap;font-family:Consolas,monospace;padding-left:24px}
+    tr.g td{font-weight:800;border-bottom:2px solid #1d2730;padding-top:14px}tr:not(.g):not(.s) td:first-child{padding-left:28px;font-size:22px;color:#444}
+    tr.s td{font-weight:800;border-top:2px solid #1d2730}
+    footer{background:#fbeceb;padding:20px 40px 26px;border-top:4px solid #b3302a}.lbl{font-size:28px;font-weight:700}
+    .big{font:800 88px/1.1 Consolas,monospace;color:#b3302a}.cn{font-size:30px;font-weight:700}footer p{margin:8px 0 0;font-size:20px;color:#5d6a74}
+    </style></head><body><div id="cv" style="display:contents"></div></body></html>`);
+  custWin.document.close();
+  update();
+};
+
 /* ---- 列印 ---- */
 document.getElementById("btnPrint").onclick = () => {
   const total = update(); const c = caseInfo(); const d = new Date();
@@ -1120,7 +1178,7 @@ document.getElementById("btnTheme").onclick = () => {
   const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem(LS + "-theme", r.dataset.theme); } catch (e) {}
 };
-[caseNo, caseWho, caseWhere].forEach(i => i.oninput = save);
+[caseNo, caseWho, caseWhere].forEach(i => i.oninput = () => update());
 
 (function init() {
   try { const t = localStorage.getItem(LS + "-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
