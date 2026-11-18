@@ -10,7 +10,7 @@
 :root {
   --bg: #f4f1ea; --card: #ffffff; --card2: #f8f6f1; --ink: #1d2730; --muted: #5d6a74; --line: #d8d2c4;
   --land: #2f7d4f; --land-soft: #e3f2e8; --bld: #1f5f8b; --bld-soft: #e1edf6; --court: #8a4b12; --court-soft: #f8ead9;
-  --ask: #b3302a; --ask-soft: #fbeceb; --money: #b3302a; --accent: #1f5f8b;
+  --ask: #b3302a; --ask-soft: #fbeceb; --money: #b3302a; --accent: #1f5f8b; --reg: #6b3fa0; --reg-soft: #f1eaf8;
   --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
   --num: ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace;
   color-scheme: light;
@@ -19,13 +19,13 @@
   :root:not([data-theme="light"]) {
     --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
     --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
-    --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; color-scheme: dark;
+    --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
   --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
-  --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; color-scheme: dark;
+  --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -93,6 +93,23 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .pv .notes p { margin: 2px 0; }
 .pv .sign { display: flex; justify-content: space-between; margin-top: 18px; font-size: 14px; }
 
+.regbtn { margin-top: 14px; width: 100%; border: 2px dashed var(--reg); background: var(--reg-soft); color: var(--reg); border-radius: 12px; padding: 12px; font-size: 18px; font-weight: 800; cursor: pointer; }
+.regbtn[aria-pressed="true"] { border-style: solid; }
+.regbtn small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+.card.reg { --c: var(--reg); margin-top: 14px; }
+.reg-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto auto; gap: 8px 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
+.reg-row select, .reg-row input { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
+.reg-row input { font: 700 17px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+.reg-row .out { font: 700 15px var(--num); color: var(--money); white-space: nowrap; text-align: right; min-width: 6em; }
+.reg-row .hint2 { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin-top: -4px; }
+@media (max-width: 640px) { .reg-row { grid-template-columns: minmax(0, 1fr) auto; } .reg-row select { grid-column: 1 / -1; } }
+.sub-h { margin: 4px 0 0; font-size: 16px; }
+.split { display: grid; gap: 4px; font-size: 15px; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
+.split div { display: flex; justify-content: space-between; gap: 10px; }
+.split div span:last-child { font-family: var(--num); font-weight: 700; }
+.split .r span { color: var(--reg); }
+.mini li.h { border: 0; font-weight: 700; color: var(--muted); font-size: 13px; letter-spacing: .1em; padding-top: 6px; }
+
 /* ---- 第 2 步：填數字卡片 ---- */
 .cards { display: grid; gap: 14px; }
 .empty { border: 2px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
@@ -153,7 +170,7 @@ input.text-in { flex: 1 1 260px; border: 1px solid var(--line); border-radius: 8
 .foot { margin-top: 18px; font-size: 13px; color: var(--muted); }
 @media (max-width: 980px) {
   .total { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-radius: 16px 16px 0 0; border-width: 2px 0 0; z-index: 20; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); gap: 6px; box-shadow: 0 -10px 30px -10px rgba(0,0,0,.35); }
-  .total h2, .total .mini, .total .case-in, .total .cn-money { display: none; }
+  .total h2, .total .mini, .total .case-in, .total .cn-money, .total .split { display: none; }
   .total .row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .big-money { font-size: 36px; }
 }
@@ -219,10 +236,12 @@ table.t td:first-child { text-align: left; }
       <section class="pick" aria-label="選擇申請原因">
         <h2>① 申請原因是什麼？<span style="font-weight:400;font-size:14px;color:var(--muted)">（可以按很多個，再按一次取消）</span></h2>
         <div id="tileGroups"></div>
+        <button class="regbtn" id="btnReg" aria-pressed="false">💰 要一起收登記規費嗎？按這裡加入<small>登記費、書狀費、謄本工本費……會跟測量費分開列、一起加總</small></button>
       </section>
       <section class="cards" id="cards" aria-label="填寫數字">
         <div class="empty" id="emptyHint">👆 先按上面的申請原因，這裡會跳出要填的格子。</div>
       </section>
+      <section id="regSec" aria-label="登記規費"></section>
       <p class="foot">本頁為試算提示工具，實際收費以登記機關核定為準。依據《土地複丈費及建築改良物測量費收費標準》（112.5.1 施行）。資料只在這台電腦的瀏覽器內，不會上傳。</p>
     </main>
 
@@ -236,6 +255,7 @@ table.t td:first-child { text-align: left; }
         </div>
       </div>
       <div class="cn-money" id="sumCn">新臺幣零元整</div>
+      <div class="split" id="splitSum" hidden></div>
       <ul class="mini" id="mini"></ul>
       <div class="case-in">
         <label>收件字號 <input id="caseNo" placeholder="例：○○字第 123 號（選填）"></label>
@@ -257,8 +277,12 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.3";
+const VERSION = "0.4";
 const CHANGES = [
+  { v: "0.4", d: "115.11.18", items: [
+    "新增「登記規費」：登記費（千分之一／千分之二）、逾期罰鍰、書狀費、謄本工本費、閱覽費",
+    "登記規費跟測量費分開列、分開小計，最後一起加總，列印也分兩張表",
+  ] },
   { v: "0.3", d: "115.11.18", items: [
     "逕為分割筆數：不足 1 公頃以 1 公頃計（1.5 公頃算 2 公頃，含 40 筆）",
     "地目變更改為 500 元",
@@ -388,7 +412,7 @@ const GROUPS = [
 const state = {}; // id -> 該卡片的輸入值
 let order = [];   // 卡片順序
 const LS = "monkey-fee-v0";
-function save() { try { localStorage.setItem(LS, JSON.stringify({ state, order, c: caseInfo() })); } catch (e) {} }
+function save() { try { localStorage.setItem(LS, JSON.stringify({ state, order, reg, c: caseInfo() })); } catch (e) {} }
 function caseInfo() { return { no: caseNo.value, who: caseWho.value, where: caseWhere.value }; }
 
 function defaults(it) {
@@ -752,6 +776,123 @@ function wire(c, it) {
   c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { s[r.dataset.ck] = r.checked; if (r.dataset.ck === "useBld" || r.dataset.ck === "useSplit") s.auto = false; rer(); });
 }
 
+/* =====================================================================
+   登記規費（跟測量費分開列，一起加總）
+   ===================================================================== */
+const REG_TYPES = [
+  { id: "change",   n: "權利變更登記（買賣、贈與、繼承、拍賣、共有物分割…）", r: 0.001, v: "權利價值", hint: "土地看申報地價；建物看稅捐機關核定繳（免）納契稅的價值（繼承：遺產稅核定價值，沒有就看房屋現值）。", law: ["rg76", "rgS5"] },
+  { id: "other",    n: "他項權利設定、移轉登記（抵押權、地上權…）", r: 0.001, v: "權利價值", hint: "看申請書上寫的權利價值（抵押權看擔保債權總金額）。", law: ["rg76"] },
+  { id: "otherChg", n: "他項權利內容變更登記", r: 0.001, v: "增加的權利價值", hint: "只有權利價值「增加的部分」要收，其他變更免費。沒有增加就填 0。", law: ["rg76"] },
+  { id: "bfirst",   n: "建物所有權第一次登記", r: 0.002, v: "使用執照工程造價", hint: "看使用執照上的工程造價。區分所有分開申請：總造價 ÷ 總面積 × 該戶勘測面積。", law: ["rg65", "rgS2"] },
+  { id: "total",    n: "土地總登記（新登記土地所有權第一次登記）", r: 0.002, v: "申報地價或權利價值", hint: "新登記土地以補辦規定地價時的申報地價為準。", law: ["rg65", "rgS1"] },
+  { id: "free",     n: "免費：標示變更、更正、消滅、塗銷、住址變更、限制登記", r: 0, v: "", hint: "這些登記不收登記費。", law: ["rgFree"] },
+];
+const COPY_TYPES = [
+  { id: "bk",   n: "權利書狀（所有權狀、他項權利證明書）", p: 80, u: "張" },
+  { id: "tp1",  n: "登記（簿）謄本－電腦列印", p: 20, u: "張" },
+  { id: "tp2",  n: "登記（簿）謄本－人工影印", p: 10, u: "張" },
+  { id: "mp1",  n: "地籍圖謄本－電腦列印", p: 20, u: "張" },
+  { id: "mp2",  n: "地籍圖謄本－人工影印", p: 15, u: "張" },
+  { id: "mp3",  n: "地籍圖謄本－人工描繪", p: 40, u: "張" },
+  { id: "app",  n: "登記申請書及附件影印", p: 10, u: "張" },
+  { id: "appv", n: "登記申請書及附件閱覽、抄錄或攝影（限時 20 分鐘）", p: 75, u: "案" },
+  { id: "bkc",  n: "各類登記專簿影印", p: 10, u: "張" },
+  { id: "bkv",  n: "各類登記專簿閱覽、抄錄或攝影（限時 20 分鐘）", p: 75, u: "案" },
+  { id: "blue", n: "地籍圖藍曬圖或複製圖閱覽（限時 20 分鐘）", p: 10, u: "張" },
+  { id: "eq",   n: "電子地籍資料到所查詢閱覽（限時 5 分鐘）", p: 20, u: "筆（棟）" },
+  { id: "idx",  n: "異動索引查詢閱覽（限時 10 分鐘）", p: 15, u: "次" },
+  { id: "scr",  n: "各項查詢畫面列印", p: 20, u: "張" },
+  { id: "lst",  n: "土地建物異動清冊影印", p: 10, u: "張" },
+];
+Object.assign(LAW, {
+  rg65: { h: "土地法 第 65 條　登記費千分之二", p: ["土地總登記，應由權利人按申報地價或土地他項權利價值，繳納登記費千分之二。建物所有權第一次登記依使用執照所列工程造價千分之二計收。"] },
+  rg76: { h: "土地法 第 76 條　變更登記千分之一", p: ["聲請為土地權利變更登記，應由權利人按申報地價或權利價值千分之一繳納登記費。", "他項權利內容變更登記：除權利價值增加部分按千分之一計收外，其餘免費。"] },
+  rg67: { h: "土地法 第 67 條　書狀費", p: ["土地所有權狀及他項權利證明書，應繳納書狀費，每張新臺幣 80 元。"] },
+  rg73: { h: "土地法 第 73 條　逾期罰鍰", p: ["逾期申請登記者，每逾一個月得處應納登記費額一倍之罰鍰，但最高不得超過二十倍。", "補充規定第 8 點：逾法定登記期限未超過一個月者，仍免予罰鍰；超過一個月，始計收登記費罰鍰。"] },
+  rgS1: { h: "土地登記規費及其罰鍰計收補充規定 第 1 點", p: ["新登記土地辦理所有權第一次登記之登記費，應以該土地依平均地權條例施行細則第二十五條第一項規定補辦規定地價時之申報地價為準計收。"] },
+  rgS2: { h: "土地登記規費及其罰鍰計收補充規定 第 2～4 點", p: ["區分所有建物分別計收時，以工程造價之總價除以使用執照所列建物總面積，所得之單位工程造價，乘以建物勘測面積計算之；使用執照附表已載有各區分所有建物之面積及造價者，得逕依其所列造價計收。", "使用執照上各區分所有建物全部一次申請登記者，依使用執照所列工程造價之總價計收登記費。"] },
+  rgS5: { h: "土地登記規費及其罰鍰計收補充規定 第 5 點", p: ["所有權移轉登記：以申報地價、稅捐機關核定繳（免）納契稅之價值為準。", "典權設定：以權利價值、稅捐機關核定繳（免）納契稅之價值為準。", "繼承登記：土地以申報地價；建物以稅捐機關核定繳（免）納遺產稅之價值為準，無核定價值者依房屋稅核課價值為準。", "共有物分割登記：以分割後各自取得部分之申報地價、稅捐機關核定之繳（免）納契稅之價值計收。", "經法院拍賣之土地，以權利移轉證明書上之日期當期申報地價為準（拍定價額低於申報地價者，以拍定價額為準）；法院拍賣之建物，依向稅捐單位申報之契稅價計收。", "信託移轉登記：以信託或信託內容變更契約書所載權利價值為準。"] },
+  rgFree: { h: "登記費免費項目", p: ["標示變更登記、更正登記、消滅登記、塗銷登記、住址變更登記、限制登記：免費。", "補充規定第 6 點：合於土地法第 76 條第 2 項、第 78 條及土地登記規則第 46 條規定情形者免納登記費。"] },
+  rgCopy: { h: "書狀費、工本費及閱覽費收費標準", p: ["登記（簿）謄本：人工影印每張 10 元、電腦列印每張 20 元。地籍圖謄本：人工影印每張 15 元、人工描繪每張 40 元、電腦列印每張 20 元。", "登記申請書及附件影印每張 10 元；閱覽、抄錄或攝影每案 75 元（限時 20 分鐘）。各類登記專簿影印每張 10 元；閱覽每案 75 元（限時 20 分鐘）。", "地籍圖藍曬圖或複製圖閱覽每張 10 元（限時 20 分鐘）。電子地籍資料到所查詢閱覽每筆（棟）20 元（限時 5 分鐘）。異動索引查詢閱覽每次 15 元（限時 10 分鐘）。查詢畫面列印每張 20 元。土地建物異動清冊影印每張 10 元。"] },
+});
+let reg = null; // null＝沒加入登記規費
+const regDefault = () => ({ rows: [{ t: "change", v: "" }], copies: [{ t: "bk", n: 1 }], fine: 0 });
+function calcReg() {
+  if (!reg) return [];
+  const L = []; let feeSum = 0;
+  reg.rows.forEach((r, i) => {
+    const T = REG_TYPES.find(x => x.id === r.t); if (!T) return;
+    if (!T.r) { L.push({ t: `登記費：${T.n}`, f: "免費", a: 0, law: T.law }); return; }
+    const v = parseFloat(r.v); if (!(v > 0)) { L.push({ t: `登記費：${T.n}`, f: `還沒填${T.v}`, a: 0, law: T.law, flag: true }); return; }
+    const a = Math.round(v * T.r); feeSum += a;
+    L.push({ t: `登記費：${T.n}`, f: `${fmt(v)} × ${T.r === 0.002 ? "2／1000" : "1／1000"}`, a, law: T.law });
+  });
+  const fx = Math.min(20, Math.max(0, reg.fine | 0));
+  if (fx && feeSum) L.push({ t: `逾期罰鍰（登記費 ${fx} 倍）`, f: `${fmt(feeSum)} × ${fx}`, a: feeSum * fx, law: ["rg73"] });
+  reg.copies.forEach(c => {
+    const T = COPY_TYPES.find(x => x.id === c.t); if (!T || !(c.n > 0)) return;
+    L.push({ t: T.n, f: `${fmt(T.p)} × ${c.n} ${T.u}`, a: T.p * c.n, law: [T.id === "bk" ? "rg67" : "rgCopy"] });
+  });
+  return L;
+}
+function renderReg() {
+  const box = document.getElementById("regSec"), btn = document.getElementById("btnReg");
+  btn.setAttribute("aria-pressed", !!reg);
+  btn.innerHTML = reg ? "💰 已加入登記規費（再按一次拿掉）<small>登記規費會跟測量費分開列、一起加總</small>" : "💰 要一起收登記規費嗎？按這裡加入<small>登記費、書狀費、謄本工本費……會跟測量費分開列、一起加總</small>";
+  box.innerHTML = "";
+  if (!reg) return;
+  const c = $(`<article class="card reg" id="card-reg">
+    <div class="card-h"><h2>💰 登記規費</h2><button class="btn law" id="regWhy">📖 依據</button><span class="sub" id="regSub">0</span><button class="x" title="移除" aria-label="移除">✕</button></div>
+    <div class="card-b">
+      <p class="say">登記費＝<b>價值 × 千分之一</b>（變更、他項權利）或 <b>千分之二</b>（建物第一次、土地總登記），元以下四捨五入。</p>
+      <h3 class="sub-h">① 登記費</h3>
+      <div class="area-list">${reg.rows.map((r, i) => { const T = REG_TYPES.find(x => x.id === r.t) || REG_TYPES[0]; return `
+        <div class="reg-row">
+          <select data-rt="${i}" aria-label="登記種類">${REG_TYPES.map(x => `<option value="${x.id}"${x.id === r.t ? " selected" : ""}>${esc(x.n)}</option>`).join("")}</select>
+          ${T.r ? `<input type="number" inputmode="numeric" min="0" placeholder="${esc(T.v)}（元）" data-rv="${i}" value="${esc(r.v)}">` : `<span class="unit">免費</span>`}
+          <span class="out" data-ro="${i}"></span>
+          ${reg.rows.length > 1 ? `<button class="del" data-rdel="${i}" aria-label="刪除" style="border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer">✕</button>` : "<span></span>"}
+          <span class="hint2">${T.v ? `填「${esc(T.v)}」：` : ""}${esc(T.hint)}</span>
+        </div>`; }).join("")}
+        <button class="btn" id="regAdd" style="justify-self:start">＋ 再加一種登記</button></div>
+      <div class="q-row"><span class="lbl">逾期罰鍰（幾倍）</span>${stepper("fine", reg.fine, "倍")}<span class="note">沒逾期填 0。逾期超過 1 個月才罰，每逾 1 個月罰登記費 1 倍，最高 20 倍。</span></div>
+      <h3 class="sub-h">② 書狀費、工本費、閱覽費</h3>
+      <div class="area-list">${reg.copies.map((x, i) => `
+        <div class="reg-row">
+          <select data-ct="${i}" aria-label="項目">${COPY_TYPES.map(t => `<option value="${t.id}"${t.id === x.t ? " selected" : ""}>${esc(t.n)}（${t.p} 元／${t.u}）</option>`).join("")}</select>
+          <span>${stepper("c" + i, x.n, (COPY_TYPES.find(t => t.id === x.t) || {}).u || "")}</span>
+          <span class="out" data-co="${i}"></span>
+          <button class="del" data-cdel="${i}" aria-label="刪除" style="border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer">✕</button>
+        </div>`).join("")}
+        <button class="btn" id="copyAdd" style="justify-self:start">＋ 再加一項</button></div>
+    </div></article>`);
+  const rer = () => { const y = window.scrollY; renderReg(); window.scrollTo(0, y); update(); };
+  c.querySelector(".x").onclick = () => { reg = null; rer(); };
+  c.querySelector("#regWhy").onclick = () => showRegLaw();
+  c.querySelectorAll("[data-rt]").forEach(el => el.onchange = () => { reg.rows[+el.dataset.rt].t = el.value; rer(); });
+  c.querySelectorAll("[data-rv]").forEach(el => el.oninput = () => { reg.rows[+el.dataset.rv].v = el.value; update(); });
+  c.querySelectorAll("[data-rdel]").forEach(el => el.onclick = () => { reg.rows.splice(+el.dataset.rdel, 1); rer(); });
+  c.querySelector("#regAdd").onclick = () => { reg.rows.push({ t: "change", v: "" }); rer(); };
+  c.querySelectorAll("[data-ct]").forEach(el => el.onchange = () => { reg.copies[+el.dataset.ct].t = el.value; rer(); });
+  c.querySelectorAll("[data-cdel]").forEach(el => el.onclick = () => { reg.copies.splice(+el.dataset.cdel, 1); rer(); });
+  c.querySelector("#copyAdd").onclick = () => { reg.copies.push({ t: "tp1", n: 1 }); rer(); };
+  c.querySelectorAll("[data-step]").forEach(b => b.onclick = () => {
+    const k = b.dataset.step, inp = c.querySelector(`input[data-k="${k}"]`);
+    const v = Math.max(0, (parseInt(inp.value) || 0) + +b.dataset.d); inp.value = v; setRegKey(k, v); update();
+  });
+  c.querySelectorAll(".stepper input[data-k]").forEach(inp => inp.oninput = () => { setRegKey(inp.dataset.k, Math.max(0, parseInt(inp.value) || 0)); update(); });
+  box.appendChild(c);
+}
+function setRegKey(k, v) { if (k === "fine") reg.fine = Math.min(20, v); else reg.copies[+k.slice(1)].n = v; }
+function showRegLaw() {
+  const ls = calcReg();
+  document.getElementById("dlgTitle").textContent = "登記規費的收費依據";
+  document.getElementById("dlgBody").innerHTML = `<div><h3 style="margin:0 0 6px">怎麼算出來的</h3><div class="tscroll"><table class="t"><tr><th>項目</th><th>算式</th><th>金額</th></tr>${ls.map(l => `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td>${fmt(l.a)}</td></tr>`).join("") || `<tr><td colspan="3">還沒填</td></tr>`}</table></div></div>` +
+    lawHTML(["rg65", "rg76", "rgS5", "rgS1", "rgS2", "rgFree", "rg73", "rg67", "rgCopy"]);
+  dlg.showModal();
+}
+document.getElementById("btnReg").onclick = () => { reg = reg ? null : regDefault(); renderReg(); update(); if (reg) document.getElementById("card-reg").scrollIntoView({ behavior: "smooth", block: "start" }); };
+
 function allLines() {
   return order.map(id => { const it = ITEMS.find(i => i.id === id); return { it, lines: calc(it) }; });
 }
@@ -771,6 +912,19 @@ function update() {
     const at = document.querySelector(`#card-${it.id} [data-tier="area"]`); if (at) { const a = parseFloat(s.area); at.innerHTML = a > 0 ? `${RATES.tierNames[tierOf(a)]} → 基本費 <b>${fmt(RATES.splitBase[tierOf(a)])}</b>` : ""; }
   });
   if (!order.length) mini.innerHTML = `<li><span style="color:var(--muted)">還沒選申請原因</span><span></span></li>`;
+  const meas = total;
+  const rl = calcReg(); const regSum = rl.reduce((a, b) => a + b.a, 0); total += regSum;
+  const sp = document.getElementById("splitSum");
+  if (reg) {
+    mini.insertBefore($(`<li class="h"><span>測量費</span><span></span></li>`), mini.firstChild);
+    mini.appendChild($(`<li class="h"><span>登記規費</span><span></span></li>`));
+    rl.forEach(l => mini.appendChild($(`<li class="${l.flag ? "flag" : ""}"><span>${esc(/^登記費：/.test(l.t) ? l.t.replace(/^登記費：/, "").replace(/（.*$/, "") : l.t.replace(/（限時.*$/, ""))}${l.flag ? " ⚠" : ""}</span><span>${fmt(l.a)}</span></li>`)));
+    sp.innerHTML = `<div><span>測量費小計</span><span>${fmt(meas)}</span></div><div class="r"><span>登記規費小計</span><span>${fmt(regSum)}</span></div>`;
+    sp.hidden = false;
+    const rs = document.getElementById("regSub"); if (rs) rs.textContent = fmt(regSum) + " 元";
+    reg.rows.forEach((r, i) => { const el = document.querySelector(`[data-ro="${i}"]`); const T = REG_TYPES.find(x => x.id === r.t); const v = parseFloat(r.v); if (el) el.textContent = T && T.r && v > 0 ? `= ${fmt(Math.round(v * T.r))} 元` : ""; });
+    reg.copies.forEach((x, i) => { const el = document.querySelector(`[data-co="${i}"]`); const T = COPY_TYPES.find(t => t.id === x.t); if (el && T) el.textContent = `= ${fmt(T.p * (x.n || 0))} 元`; });
+  } else sp.hidden = true;
   document.getElementById("sum").textContent = fmt(total);
   document.getElementById("sumCn").textContent = "新臺幣" + cnMoney(total) + "元整";
   save();
@@ -853,18 +1007,31 @@ document.getElementById("btnPrint").onclick = () => {
     rows += `<tr class="grp-row"><td colspan="3">${esc(it.name)}</td><td class="n">${fmt(sub)}</td></tr>`;
     lines.forEach(l => rows += `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td class="basis">${(l.law || []).filter(k => LAW[k]).map(k => esc(LAW[k].h)).join("<br>")}</td><td class="n">${fmt(l.a)}</td></tr>`);
   });
-  const flagged = allLines().some(x => x.lines.some(l => l.flag));
+  const lawCell = l => (l.law || []).filter(k => LAW[k]).map(k => esc(LAW[k].h)).join("<br>");
+  const measSum = allLines().reduce((a, x) => a + x.lines.reduce((p, q) => p + q.a, 0), 0);
+  const rl = calcReg(); const regSum = rl.reduce((a, b) => a + b.a, 0);
+  let regRows = "";
+  if (reg) {
+    rows += `<tr class="tot"><td colspan="3">測量費小計</td><td class="n">${fmt(measSum)}</td></tr>`;
+    regRows = `<h2 style="font-size:14pt;margin:5mm 0 2mm">登記規費</h2>
+      <table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead><tbody>
+      ${rl.map(l => `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td class="basis">${lawCell(l)}</td><td class="n">${fmt(l.a)}</td></tr>`).join("") || `<tr><td colspan="4">（無）</td></tr>`}
+      <tr class="tot"><td colspan="3">登記規費小計</td><td class="n">${fmt(regSum)}</td></tr></tbody></table>`;
+  }
+  const flagged = allLines().some(x => x.lines.some(l => l.flag)) || rl.some(l => l.flag);
   document.getElementById("printArea").innerHTML = `<div class="rp">
-    <h1>測量案件預收費用明細</h1>
+    <h1>${reg ? "測量及登記規費收費明細" : "測量案件預收費用明細"}</h1>
     <div class="meta"><div>收件字號：${esc(c.no) || "＿＿＿＿＿＿＿＿"}</div><div>試算時間：${ds}</div>
       <div>申請人：${esc(c.who) || "＿＿＿＿＿＿＿＿"}</div><div>坐落：${esc(c.where) || "＿＿＿＿＿＿＿＿"}</div></div>
     <table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead>
     <tbody>${rows || `<tr><td colspan="4">尚未選擇申請原因</td></tr>`}
-    <tr class="tot"><td colspan="3">應預收合計　新臺幣 ${cnMoney(total)} 元整</td><td class="n">${fmt(total)}</td></tr></tbody></table>
+    ${reg ? "" : `<tr class="tot"><td colspan="3">應預收合計　新臺幣 ${cnMoney(total)} 元整</td><td class="n">${fmt(total)}</td></tr>`}</tbody></table>
+    ${regRows}
+    ${reg ? `<table style="margin-top:4mm"><tbody><tr class="tot"><td>應收合計（測量費 ${fmt(measSum)}＋登記規費 ${fmt(regSum)}）　新臺幣 ${cnMoney(total)} 元整</td><td class="n" style="width:14%">${fmt(total)}</td></tr></tbody></table>` : ""}
     <div class="notes">
       ${flagged ? "<p>⚠ 本明細含尚未填入金額之項目（網站試算或洽課長），請確認。</p>" : ""}
       <p>一、本表為收件預收試算，線段數、點數、面積單位以實際測量結果為準，多退少補。</p>
-      <p>二、依據《土地複丈費及建築改良物測量費收費標準》（112 年 5 月 1 日施行）及本所收件作法。</p>
+      <p>二、依據《土地複丈費及建築改良物測量費收費標準》（112 年 5 月 1 日施行）及本所收件作法${reg ? "；登記規費依土地法第 65、67、73、76 條、《土地登記規費及其罰鍰計收補充規定》及書狀費、工本費及閱覽費收費標準" : ""}。</p>
       <p>三、複丈或測量日期前撤回者，依第 8 條扣除已支出費用（已赴現場整備 800 元；未赴現場 300 元）後退還。</p>
     </div>
     <div class="sign"><span>收件人員：＿＿＿＿＿＿＿＿</span><span>申請人確認：＿＿＿＿＿＿＿＿</span></div></div>`;
@@ -876,7 +1043,7 @@ document.getElementById("btnPrint").onclick = () => {
     <div class="btns" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btnCopy">📋 複製明細</button><span id="copyMsg" style="align-self:center;color:var(--muted);font-size:14px"></span></div>
     <div class="pv">${document.getElementById("printArea").innerHTML}</div>`;
   document.getElementById("btnCopy").onclick = () => {
-    const txt = allLines().map(({ it, lines }) => `【${it.name}】\n` + lines.map(l => `  ${l.t}　${l.f}　${fmt(l.a)} 元`).join("\n")).join("\n") + `\n應預收合計：${fmt(total)} 元（新臺幣${cnMoney(total)}元整）`;
+    const txt = allLines().map(({ it, lines }) => `【${it.name}】\n` + lines.map(l => `  ${l.t}　${l.f}　${fmt(l.a)} 元`).join("\n")).join("\n") + (reg ? `\n【登記規費】\n` + calcReg().map(l => `  ${l.t}　${l.f}　${fmt(l.a)} 元`).join("\n") : "") + `\n應預收合計：${fmt(total)} 元（新臺幣${cnMoney(total)}元整）`;
     const msg = document.getElementById("copyMsg");
     navigator.clipboard.writeText(txt).then(() => msg.textContent = "已複製，可以貼到 Word 或 LINE。", () => { msg.textContent = "複製失敗，請直接選取下面的表格複製。"; });
   };
@@ -889,9 +1056,9 @@ document.getElementById("btnReset").onclick = () => {
   const b = document.getElementById("btnReset");
   if (Date.now() - resetArmed > 3000) { resetArmed = Date.now(); b.textContent = "⚠ 再按一次確定清空"; setTimeout(() => b.textContent = "🧹 清空重來", 3000); return; }
   resetArmed = 0; b.textContent = "🧹 清空重來";
-  for (const k in state) delete state[k]; order = [];
+  for (const k in state) delete state[k]; order = []; reg = null;
   caseNo.value = caseWho.value = caseWhere.value = "";
-  renderTiles(); renderCards(); update();
+  renderTiles(); renderCards(); renderReg(); update();
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 document.getElementById("btnTheme").onclick = () => {
@@ -907,9 +1074,10 @@ document.getElementById("btnTheme").onclick = () => {
     if (d && Array.isArray(d.order)) {
       d.order.forEach(id => { const it = ITEMS.find(i => i.id === id); if (it && d.state[id]) { state[id] = { ...defaults(it), ...d.state[id] }; order.push(id); } });
       if (d.c) { caseNo.value = d.c.no || ""; caseWho.value = d.c.who || ""; caseWhere.value = d.c.where || ""; }
+      if (d.reg && Array.isArray(d.reg.rows)) reg = { ...regDefault(), ...d.reg };
     }
   } catch (e) {}
-  renderTiles(); renderCards(); update();
+  renderTiles(); renderCards(); renderReg(); update();
   document.getElementById("verTag").textContent = "v" + VERSION;
   let last = null; try { last = localStorage.getItem(LS + "-ver"); localStorage.setItem(LS + "-ver", VERSION); } catch (e) {}
   if (last && last !== VERSION) {
