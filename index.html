@@ -114,6 +114,19 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 #btnCust[aria-pressed="true"] { border-color: var(--land); color: var(--land); background: var(--land-soft); }
 .mini li.h { border: 0; font-weight: 700; color: var(--muted); font-size: 13px; letter-spacing: .1em; padding-top: 6px; }
 
+.search { margin: 4px 0 6px; display: grid; gap: 8px; }
+.search input { width: 100%; border: 2px solid var(--accent); border-radius: 12px; padding: 12px 14px; font-size: 19px; background: var(--card); }
+.search input:focus { outline: none; box-shadow: 0 0 0 4px var(--bld-soft); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.qres { display: grid; gap: 6px; }
+.qres button { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--card2); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.qres button:hover, .qres button.first { border-color: var(--accent); background: var(--bld-soft); }
+.qres b { font-size: 18px; }
+.qres span { font-size: 14px; color: var(--muted); }
+.qres em { font-style: normal; font-size: 13px; color: var(--land); white-space: nowrap; }
+.qres .none { color: var(--muted); font-size: 15px; padding: 6px 2px; }
+.tile.dim { opacity: .3; }
+
 /* ---- 第 2 步：填數字卡片 ---- */
 .cards { display: grid; gap: 14px; }
 .empty { border: 2px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
@@ -240,6 +253,11 @@ table.t td:first-child { text-align: left; }
     <main>
       <section class="pick" aria-label="選擇申請原因">
         <h2>① 申請原因是什麼？<span style="font-weight:400;font-size:14px;color:var(--muted)">（可以按很多個，再按一次取消）</span></h2>
+        <div class="search">
+          <label for="q" class="sr">搜尋申請原因</label>
+          <input id="q" type="search" autocomplete="off" placeholder="🔍 直接打字找：例如 指界、會勘、拆掉、徵收、買賣、謄本……">
+          <div id="qres" class="qres" hidden></div>
+        </div>
         <div id="tileGroups"></div>
         <button class="regbtn" id="btnReg" aria-pressed="false">💰 要一起收登記規費嗎？按這裡加入<small>登記費、書狀費、謄本工本費……會跟測量費分開列、一起加總</small></button>
       </section>
@@ -283,8 +301,11 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.7";
+const VERSION = "0.8";
 const CHANGES = [
+  { v: "0.8", d: "115.11.20", items: [
+    "新增搜尋欄：直接打字（例如 指界、會勘、拆掉、徵收、買賣、謄本），會跳出相關的收費項目，按一下或按 Enter 就加入",
+  ] },
   { v: "0.7", d: "115.11.19", items: [
     "土地法院囑託、建物法院囑託合併成「法院囑託」",
     "不用再打來文內容：看到分割方案、補繪方案等字就選分割，其他（會勘、履勘…）選 5,000",
@@ -604,13 +625,73 @@ function renderTiles() {
                      : $(`<div class="grp g-${G.g}"><h3>${G.t}</h3><div class="tiles"></div></div>`);
     ITEMS.filter(i => i.g === G.g).forEach(it => {
       const sub = it.kind === "boss" ? "洽課長 #201" : it.sub || "";
-      const b = $(`<button class="tile${it.kind === "boss" ? " q" : ""}" aria-pressed="${!!state[it.id]}">${esc(it.name)}${sub ? `<small>${esc(sub)}</small>` : ""}</button>`);
+      const b = $(`<button data-id="${it.id}" class="tile${it.kind === "boss" ? " q" : ""}" aria-pressed="${!!state[it.id]}">${esc(it.name)}${sub ? `<small>${esc(sub)}</small>` : ""}</button>`);
       b.onclick = () => toggle(it.id);
       g.querySelector(".tiles").appendChild(b);
     });
     box.appendChild(g);
   });
 }
+
+/* ---- 搜尋：名稱、說明、常用說法都可以找 ---- */
+const KEYS = {
+  jianjie: "鑑界 界址 界樁 確認界線 釘界 測界線 每筆基本費 施測費 點數", posLook: "指界 位置勘查 勘查 他項權利位置勘查 只看位置 不測量",
+  split: "分割 切開 分筆 土地分割 線段", jingfen: "逕為分割 徵收 作業費 公頃 道路 公共設施 需用土地人",
+  newReg: "新登記 未登記土地 第一次登記 新地號", single: "單筆建檔 新登記", tanmo: "坍沒 流失 河川 沖走", fufu: "浮覆 河川 浮出", natural: "自然增加 海埔 增加",
+  adjust: "界址調整 調整地形 曲折", rejian: "再鑑界 重新鑑界 不服鑑界", other: "他項權利 地上權 地役權 不動產役權 典權 位置",
+  merge: "合併 併筆 土地合併 免費", fix: "更正 免費", dingzh: "訂正 免費", useArea: "使用面積 課長", landElse: "土地其他 其他 課長",
+  court: "法院 囑託 會勘 履勘 勘測 查封 拍賣 共有物分割 分割方案 補繪 繪製 地上物 執行署 行政執行 檢察署 刑事",
+  bFirst: "建物第一次 保存登記 建物測量 新建 第一次測量 使用執照 建管前 房子 蓋好", extend: "增建 加蓋 頂樓 使用執照", rebuild: "改建 使用執照",
+  bSplit: "建物分割 房子分開", bMerge: "建物合併 房子合併", loss: "滅失 拆除 拆掉 倒塌 部分滅失 全部滅失 火災",
+  baseNo: "基地號 基地號勘查", doorNo: "門牌 門牌勘查 地址 整編", bldElse: "建物其他 其他 課長", landUse: "地目變更 地目 早期",
+};
+const REG_KEYS = "登記規費 登記費 買賣 過戶 贈與 繼承 抵押 設定 他項權利設定 塗銷 書狀 權狀 謄本 工本費 閱覽 罰鍰 逾期 千分之一 千分之二";
+function searchItems(q) {
+  q = q.trim(); if (!q) return [];
+  const words = q.split(/\s+/);
+  const hit = text => words.every(w => text.includes(w));
+  const out = ITEMS.map(it => {
+    const text = `${it.name} ${it.sub || ""} ${KEYS[it.id] || ""}`;
+    if (!hit(text)) return null;
+    const score = it.name === q ? 0 : it.name.includes(q) ? 1 : 2;
+    return { id: it.id, name: it.name, desc: tileDesc(it), score };
+  }).filter(Boolean).sort((a, b) => a.score - b.score);
+  if (hit(REG_KEYS)) out.push({ id: "__reg", name: "登記規費", desc: "登記費、書狀費、謄本工本費、閱覽費、逾期罰鍰（跟測量費分開列）", score: 3 });
+  return out;
+}
+function tileDesc(it) {
+  const d = { jianjie: "每筆基本費（看面積）＋全案點數每 5 點 1,000", lines: "每筆基本費（看面積）＋每條線 500", adjust: "面積總和基本費＋每條線 500", other: "每筆基本費＋每條線 500",
+    free: "免費", per500: "每筆／每建號 500", zheng: "每公頃 105,000，筆數、人數超過再加", boss: "洽測量課課長 #201", landuse: "500",
+    bfirst: "位置圖 4,000／棟＋平面圖每 50 ㎡ 1,000（看帶了什麼）", bsplit: "分割後每 50 ㎡ 1,000＋每建號 800", bmerge: "合併前每 50 ㎡ 400＋每建號 400",
+    loss: "全部滅失每建號 500；部分滅失看剩下面積", court: "分割方案收分割基本費，其他 5,000；成果圖第 2 份起每份 20" };
+  return d[it.kind] || "";
+}
+function renderSearch() {
+  const q = document.getElementById("q").value, box = document.getElementById("qres");
+  const res = searchItems(q);
+  document.querySelectorAll(".tile").forEach(t => t.classList.toggle("dim", !!q.trim() && !res.some(r => r.id === t.dataset.id)));
+  res.forEach(r => { const t = document.querySelector(`.tile[data-id="${r.id}"]`); const d = t && t.closest("details"); if (d) d.open = true; });
+  if (!q.trim()) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = res.length ? res.map((r, i) => {
+    const on = r.id === "__reg" ? !!reg : !!state[r.id];
+    return `<button type="button" data-qid="${r.id}"${i === 0 ? ' class="first"' : ""}><b>${esc(r.name)}</b><span>${esc(r.desc)}</span><em>${on ? "✓ 已加入，按了跳過去" : "按一下加入"}</em></button>`;
+  }).join("") + (res.length ? `<div class="none">按 Enter 直接選第一個。找不到想要的？試試別的說法，或直接按下面的按鈕。</div>` : "")
+    : `<div class="none">找不到「${esc(q)}」。試試別的說法（例如：指界、拆掉、法院、買賣），或直接按下面的按鈕。</div>`;
+  box.querySelectorAll("[data-qid]").forEach(b => b.onclick = () => pickSearch(b.dataset.qid));
+}
+function pickSearch(id) {
+  const qi = document.getElementById("q");
+  if (id === "__reg") { if (!reg) { reg = regDefault(); renderReg(); update(); } qi.value = ""; renderSearch(); document.getElementById("card-reg").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  qi.value = ""; renderSearch();
+  if (state[id]) document.getElementById("card-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  else toggle(id);
+}
+document.getElementById("q").addEventListener("input", renderSearch);
+document.getElementById("q").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); const f = document.querySelector("#qres [data-qid]"); if (f) pickSearch(f.dataset.qid); }
+  if (e.key === "Escape") { e.target.value = ""; renderSearch(); }
+});
 
 function toggle(id) {
   if (state[id]) { delete state[id]; order = order.filter(x => x !== id); }
