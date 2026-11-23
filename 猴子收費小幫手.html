@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>猴子收費小幫手</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* 一樓收件櫃台用：按申請原因 → 填幾個數字 → 看大大的金額 → 列印明細 */
 :root {
-  --bg: #f4f1ea; --card: #ffffff; --card2: #f8f6f1; --ink: #1d2730; --muted: #5d6a74; --line: #d8d2c4;
+  --bg: #eef2f1; --card: #ffffff; --card2: #f5f8f7; --ink: #1c2a33; --muted: #5a6a73; --line: #d6dfdd;
+  --fill: #fff6cf; --fill-ink: #1c2a33; --on-accent: #ffffff; --shadow: 0 1px 2px rgba(20,40,50,.06), 0 6px 20px -12px rgba(20,40,50,.25);
   --land: #2f7d4f; --land-soft: #e3f2e8; --bld: #1f5f8b; --bld-soft: #e1edf6; --court: #8a4b12; --court-soft: #f8ead9;
   --ask: #b3302a; --ask-soft: #fbeceb; --money: #b3302a; --accent: #1f5f8b; --reg: #6b3fa0; --reg-soft: #f1eaf8;
   --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
@@ -19,40 +19,45 @@
   :root:not([data-theme="light"]) {
     --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
     --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
-    --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; color-scheme: dark;
+    --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; --fill: #fff1b8; --fill-ink: #1c2a33; --on-accent: #0e1a20; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12171b; --card: #1a2228; --card2: #20292f; --ink: #e3e9ed; --muted: #97a6b0; --line: #2f3c45;
   --land: #6cc690; --land-soft: #1b3326; --bld: #72b4d4; --bld-soft: #1a3140; --court: #e2a35f; --court-soft: #382a1a;
-  --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; color-scheme: dark;
+  --ask: #ef7d72; --ask-soft: #3a2120; --money: #ff8f84; --accent: #72b4d4; --reg: #c3a3ee; --reg-soft: #2c2240; --fill: #fff1b8; --fill-ink: #1c2a33; --on-accent: #0e1a20; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--font); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.65 var(--font); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--bld-soft); }
 button, input, textarea, select { font: inherit; color: inherit; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 140px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); letter-spacing: .04em; }
 h1 small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: 0; }
-.btn { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+.btn { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 16px; min-height: 42px; cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s, background .15s, transform .1s; }
+.btn:active { transform: translateY(1px); }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
 .btn.big { padding: 12px 20px; font-size: 18px; font-weight: 700; }
-.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-.btn.primary:hover { color: #fff; filter: brightness(1.1); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { color: var(--on-accent); filter: brightness(1.1); }
 .btn.law { font-size: 14px; padding: 4px 10px; border-color: var(--accent); color: var(--accent); background: transparent; }
 .steps { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; padding: 0; list-style: none; font-size: 15px; color: var(--muted); }
+.steps li { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px 4px 6px; }
 .steps li b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); margin-right: 6px; font-size: 14px; }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
 @media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 
 /* ---- 第 1 步：申請原因大按鈕 ---- */
-.pick { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 16px; margin-bottom: 16px; }
+.pick { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px 20px; margin-bottom: 18px; box-shadow: var(--shadow); }
 .pick h2 { margin: 0 0 10px; font-size: 19px; }
 .grp { margin-top: 10px; }
 .grp h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); font-weight: 600; letter-spacing: .1em; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
-.tile { border: 2px solid var(--line); background: var(--card2); border-radius: 10px; padding: 10px 8px; cursor: pointer; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.3; position: relative; }
+.tile { border: 2px solid var(--line); background: var(--card2); border-radius: 12px; padding: 12px 8px; min-height: 66px; cursor: pointer; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.3; position: relative; transition: border-color .15s, background .15s, transform .12s, box-shadow .15s, opacity .15s; }
+.tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .tile small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .g-land .tile:hover, .g-land .tile[aria-pressed="true"] { border-color: var(--land); }
 .g-land .tile[aria-pressed="true"] { background: var(--land-soft); }
@@ -60,7 +65,7 @@ h1 small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 
 .g-bld .tile[aria-pressed="true"] { background: var(--bld-soft); }
 .g-court .tile:hover, .g-court .tile[aria-pressed="true"] { border-color: var(--court); }
 .g-court .tile[aria-pressed="true"] { background: var(--court-soft); }
-.tile[aria-pressed="true"]::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-size: 14px; }
+.tile[aria-pressed="true"]::after { content: "✓"; position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; background: var(--ink); color: var(--card); }
 .tile.q { border-style: dashed; }
 .tile.q small { color: var(--ask); }
 
@@ -69,7 +74,7 @@ details.grp > summary::-webkit-details-marker { display: none; }
 details.grp > summary h3::before { content: "▸ "; }
 details.grp[open] > summary h3::before { content: "▾ "; }
 .g-old .tile[aria-pressed="true"] { border-color: var(--muted); background: var(--card2); }
-.weblink { display: grid; gap: 2px; padding: 16px 18px; border-radius: 12px; background: var(--accent); color: #fff; text-decoration: none; font-size: 20px; font-weight: 800; }
+.weblink { display: grid; gap: 2px; padding: 16px 18px; border-radius: 12px; background: var(--accent); color: var(--on-accent); text-decoration: none; font-size: 20px; font-weight: 800; }
 .weblink small { font: 400 13px var(--num); opacity: .85; word-break: break-all; }
 .weblink:hover { filter: brightness(1.1); }
 .linkbtn { justify-self: start; border: 0; background: transparent; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 2px 0; font-size: 15px; }
@@ -99,18 +104,17 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .card.reg { --c: var(--reg); margin-top: 14px; }
 .reg-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) auto auto; gap: 8px 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
 .reg-row select, .reg-row input { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); }
-.reg-row input { font: 700 17px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+.reg-row input { font: 700 17px var(--num); background: var(--fill); color: var(--fill-ink); text-align: right; }
 .reg-row .out { font: 700 15px var(--num); color: var(--money); white-space: nowrap; text-align: right; min-width: 6em; }
 .reg-row .hint2 { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin-top: -4px; }
 @media (max-width: 640px) { .reg-row { grid-template-columns: minmax(0, 1fr) auto; } .reg-row select { grid-column: 1 / -1; } }
 .sub-h { margin: 4px 0 0; font-size: 16px; }
-.date-in { flex: 0 1 12em !important; font: 700 17px var(--num); background: #fff7d6 !important; color: #1d2730; }
+.date-in { flex: 0 1 12em !important; font: 700 17px var(--num); background: var(--fill) !important; color: var(--fill-ink); }
 .date-in.bad { border-color: var(--ask); box-shadow: 0 0 0 3px var(--ask-soft); }
 .split { display: grid; gap: 4px; font-size: 15px; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
 .split div { display: flex; justify-content: space-between; gap: 10px; }
 .split div span:last-child { font-family: var(--num); font-weight: 700; }
 .split .r span { color: var(--reg); }
-#btnCust[aria-pressed="true"] { border-color: var(--land); color: var(--land); background: var(--land-soft); }
 #btnCust[aria-pressed="true"] { border-color: var(--land); color: var(--land); background: var(--land-soft); }
 .mini li.h { border: 0; font-weight: 700; color: var(--muted); font-size: 13px; letter-spacing: .1em; padding-top: 6px; }
 
@@ -129,8 +133,15 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 
 /* ---- 第 2 步：填數字卡片 ---- */
 .cards { display: grid; gap: 14px; }
-.empty { border: 2px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; color: var(--muted); }
-.card { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--c, var(--accent)); border-radius: 14px; overflow: hidden; }
+.empty { border: 2px dashed var(--line); border-radius: 16px; padding: 32px 20px; text-align: center; color: var(--muted); background: var(--card2); font-size: 18px; }
+.empty .monkey { font-size: 44px; display: block; margin-bottom: 6px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--card); padding: 12px 20px; border-radius: 999px; font-size: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: calc(100vw - 32px); }
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 980px) { .toast { bottom: 130px; } }
+.card { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--c, var(--accent)); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); scroll-margin-top: 16px; }
+.card.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 6px var(--c, var(--accent)); } 100% { box-shadow: var(--shadow); } }
+@media (prefers-reduced-motion: reduce) { .card.flash { animation: none; } .tile, .btn { transition: none; } .tile:hover { transform: none; } }
 .card.land { --c: var(--land); } .card.bld { --c: var(--bld); } .card.court { --c: var(--court); } .card.ask { --c: var(--ask); }
 .card-h { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; background: var(--card2); border-bottom: 1px solid var(--line); }
 .card-h h2 { margin: 0; font-size: 21px; }
@@ -147,13 +158,13 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .stepper { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .stepper button { width: 44px; border: 0; background: var(--card2); font-size: 22px; cursor: pointer; }
 .stepper button:hover { color: var(--accent); }
-.stepper input { width: 72px; border: 0; text-align: center; font: 700 20px var(--num); background: #fff7d6; color: #1d2730; padding: 6px 0; -moz-appearance: textfield; }
+.stepper input { width: 72px; border: 0; text-align: center; font: 700 20px var(--num); background: var(--fill); color: var(--fill-ink); padding: 6px 0; -moz-appearance: textfield; }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .unit { color: var(--muted); font-size: 15px; }
 .area-list { display: grid; gap: 8px; }
 .area-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--card2); }
 .area-row .no { font-weight: 700; min-width: 4.5em; }
-.area-row input { width: 9em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 18px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+.area-row input { width: 9em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 18px var(--num); background: var(--fill); color: var(--fill-ink); text-align: right; }
 .area-row .tier { font-size: 14px; color: var(--muted); }
 .area-row .tier b { color: var(--ink); }
 .area-row .del { margin-left: auto; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; }
@@ -164,15 +175,13 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .opt input { width: 20px; height: 20px; margin-top: 3px; }
 .opt b { font-size: 16px; }
 .opt span { grid-column: 2; font-size: 13.5px; color: var(--muted); }
-textarea.kw { width: 100%; min-height: 80px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fff7d6; color: #1d2730; font-size: 16px; }
-.hits { display: flex; flex-wrap: wrap; gap: 6px; font-size: 14px; }
-.hits mark { background: var(--court-soft); color: var(--court); border: 1px solid var(--court); border-radius: 999px; padding: 0 10px; }
 input.money-in.bad { border-color: var(--ask); box-shadow: 0 0 0 3px var(--ask-soft); }
-input.money-in { width: 10em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 20px var(--num); background: #fff7d6; color: #1d2730; text-align: right; }
+input.money-in { width: 10em; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: 700 20px var(--num); background: var(--fill); color: var(--fill-ink); text-align: right; }
 input.text-in { flex: 1 1 260px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--card); }
 
 /* ---- 第 3 步：應收合計 ---- */
-.total { position: sticky; top: 16px; background: var(--card); border: 2px solid var(--money); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+.total { position: sticky; top: 16px; background: var(--card); border: 2px solid var(--money); border-radius: 18px; padding: 18px; display: grid; gap: 12px; box-shadow: var(--shadow); }
+.total .flow { margin: 0; font-size: 13px; color: var(--muted); }
 .total h2 { margin: 0; font-size: 18px; }
 .big-money { font: 800 clamp(40px, 6vw, 56px)/1 var(--num); color: var(--money); letter-spacing: -.02em; }
 .big-money small { font-size: 22px; margin-right: 4px; }
@@ -187,6 +196,7 @@ input.text-in { flex: 1 1 260px; border: 1px solid var(--line); border-radius: 8
 .total .btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .foot { margin-top: 18px; font-size: 13px; color: var(--muted); }
 @media (max-width: 980px) {
+  .total .flow { display: none; }
   .total { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-radius: 16px 16px 0 0; border-width: 2px 0 0; z-index: 20; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); gap: 6px; box-shadow: 0 -10px 30px -10px rgba(0,0,0,.35); }
   .total h2, .total .mini, .total .case-in, .total .cn-money, .total .split { display: none; }
   .total .row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -234,7 +244,7 @@ table.t td:first-child { text-align: left; }
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>🐒 猴子收費小幫手 <small>測量案件收件預收費用提示 <span class="ver" id="verTag"></span></small></h1>
+    <h1>🐒 猴子收費小幫手 <small>測量及登記規費收件提示 <span class="ver" id="verTag"></span></small></h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnNews">🔔 更新紀錄</button>
       <button class="btn" id="btnAllLaw">📖 收費標準總表</button>
@@ -262,7 +272,7 @@ table.t td:first-child { text-align: left; }
         <button class="regbtn" id="btnReg" aria-pressed="false">💰 要一起收登記規費嗎？按這裡加入<small>登記費、書狀費、謄本工本費……會跟測量費分開列、一起加總</small></button>
       </section>
       <section class="cards" id="cards" aria-label="填寫數字">
-        <div class="empty" id="emptyHint">👆 先按上面的申請原因，這裡會跳出要填的格子。</div>
+        <div class="empty" id="emptyHint"><span class="monkey" aria-hidden="true">🐒</span>先按上面的申請原因（或用搜尋），<br>這裡就會跳出要填的黃色格子。</div>
       </section>
       <section id="regSec" aria-label="登記規費"></section>
       <p class="foot">本頁為試算提示工具，實際收費以登記機關核定為準。依據《土地複丈費及建築改良物測量費收費標準》（112.5.1 施行）。🔒 不會存任何資料：關掉或重新整理網頁，填的內容就全部清空。</p>
@@ -273,12 +283,13 @@ table.t td:first-child { text-align: left; }
       <div class="row1">
         <div class="big-money"><small>NT$</small><span id="sum">0</span></div>
         <div class="btns">
+          <button class="btn big" id="btnCust">🖥 給民眾看</button>
           <button class="btn big primary" id="btnPrint">🖨 列印明細</button>
           <button class="btn" id="btnWhy">📖 為什麼是這個數？</button>
-          <button class="btn big" id="btnCust">🖥 給民眾看</button>
         </div>
       </div>
       <div class="cn-money" id="sumCn">新臺幣零元整</div>
+      <p class="flow">建議：先「給民眾看」確認金額，再「列印明細」。</p>
       <div class="split" id="splitSum" hidden></div>
       <ul class="mini" id="mini"></ul>
       <div class="case-in">
@@ -296,13 +307,24 @@ table.t td:first-child { text-align: left; }
 </dialog>
 
 <div id="printArea"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.9";
+const VERSION = "1.0";
 const CHANGES = [
+  { v: "1.0", d: "115.11.23", items: [
+    "正式版發布，檔名改為「猴子收費小幫手.html」",
+    "介面整理：顏色更柔和、按鈕更大、卡片加上陰影；加入卡片時會閃一下並跳出提示",
+    "合計區按鈕照流程排：先「給民眾看」再「列印明細」",
+    "只收登記規費時，列印和民眾畫面不再出現空的測量費表",
+    "修正：手動填的金額有小數時，國字金額會算錯（現在一律取整數）",
+    "修正：搜尋中按按鈕，其他按鈕變淡的效果會消失",
+    "民眾畫面上還沒填好的項目改顯示「確認中」，不顯示內部提示",
+    "清掉舊版留下、已不用的程式碼",
+  ] },
   { v: "0.9", d: "115.11.23", items: [
     "資安：不再存任何資料，關掉或重新整理網頁就全部清空（主畫面關掉，民眾畫面也一起關）",
     "增建先問「往哪裡蓋」：往上蓋不收位置圖費；往旁邊蓋才收 4,000 元／棟",
@@ -420,7 +442,7 @@ const LAW = {
 
 /* =====================================================================
    申請原因（順序照收件系統選單）
-   kind 決定要問哪些問題；ask=true 代表還不確定怎麼收
+   kind 決定要問哪些問題
    ===================================================================== */
 const ITEMS = [
   { id: "jianjie",  name: "鑑界",       g: "land", kind: "jianjie", web: true, sub: "先用網站算" },
@@ -482,16 +504,12 @@ function defaults(it) {
     case "bmerge":  return { floors: ["", ""], n: 2 };
     case "loss":    return { mode: "all", n: 1, floors: [""] };
     case "court":   return { type: "", lots: [""], maps: "", double: false, criminal: false };
-    case "ask":     return { amt: "", memo: "" };
   }
 }
 
 /* =====================================================================
    計算：每張卡片回傳明細列 [{t:項目, f:算式, a:金額, law:[依據]}]
    ===================================================================== */
-const KW_BLD = ["勘測", "履勘", "會勘", "勘驗", "勘查", "地上物", "現況", "查封"];
-const KW_SPLIT = ["分割方案", "補繪", "繪製", "方案"];
-function kwHits(text, list) { return list.filter(k => text.includes(k)); }
 
 function lotLines(lots, table, label) {
   const out = [];
@@ -514,7 +532,7 @@ function calc(it) {
   const s = state[it.id];
   const L = [];
   if (it.web && s.web) {
-    const a = parseFloat(s.amt);
+    const a = Math.round(parseFloat(s.amt));
     L.push({ t: `${it.name}（依內政部試算網站計算）`, f: a > 0 ? "網站試算結果" : "尚未填網站金額", a: a > 0 ? a : 0, law: ["web"], flag: !(a > 0) });
     return L;
   }
@@ -539,7 +557,7 @@ function calc(it) {
       break;
     }
     case "boss": {
-      const a = parseFloat(s.amt);
+      const a = Math.round(parseFloat(s.amt));
       L.push({ t: `${it.name}（課長決定${s.memo ? "：" + s.memo : ""}）`, f: a > 0 ? "依課長指示" : "尚未洽課長", a: a > 0 ? a : 0, law: ["inBoss"], flag: !(a > 0) && !s.memo });
       break;
     }
@@ -611,13 +629,7 @@ function calc(it) {
       else L.push({ t: `成果圖 ${n} 份（第 1 份免費）`, f: n > 1 ? `${fmt(RATES.courtMap)} × ${n - 1} 份` : "免費", a: RATES.courtMap * Math.max(0, n - 1), law: ["inCourtMap", "s7"] });
       break;
     }
-    case "ask": {
-      const a = parseFloat(s.amt);
-      L.push({ t: `${it.name}（⚠ 收費方式待確認${s.memo ? "：" + s.memo : ""}）`, f: a > 0 ? "手動輸入" : "未填", a: a > 0 ? a : 0, law: [], flag: true });
-      break;
-    }
   }
-  if (it.flag) L.forEach(x => x.flag = true);
   return L;
 }
 
@@ -726,8 +738,8 @@ document.getElementById("q").addEventListener("keydown", e => {
 function toggle(id) {
   if (state[id]) { delete state[id]; order = order.filter(x => x !== id); }
   else { state[id] = defaults(ITEMS.find(i => i.id === id)); order.push(id); }
-  renderTiles(); renderCards(); update();
-  if (state[id]) document.getElementById("card-" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  renderTiles(); renderCards(); update(); renderSearch();
+  if (state[id]) { const c = document.getElementById("card-" + id); if (c) { c.scrollIntoView({ behavior: "smooth", block: "start" }); c.classList.add("flash"); } toast(`已加入「${ITEMS.find(i => i.id === id).name}」，往下填黃色格子`); }
 }
 
 function stepper(key, val, unit, min = 0) {
@@ -844,10 +856,6 @@ function body(it) {
         ${check("double", s.double, "來文要求收件後 15 日內辦完 → 費用加倍", "第 4 條第 2 項（成果圖費不加倍）")}
         ${check("criminal", s.criminal, "刑事案件（法院或檢察署行使國家刑罰權）→ 免費", "第 5 條")}
       </div>`;
-    case "ask": return `
-      <p class="warn">⚠ 這個申請原因的收費方式<b>還沒確定</b>${it.hint ? `（${esc(it.hint)}）` : ""}。請先問承辦或主管，再把金額填在下面。</p>
-      <div class="q-row"><span class="lbl">要收多少</span><input class="money-in" type="number" inputmode="numeric" min="0" data-k="amt" value="${esc(s.amt)}" placeholder="0"><span class="unit">元</span></div>
-      <div class="q-row"><span class="lbl">問了誰／備註</span><input class="text-in" data-k="memo" value="${esc(s.memo)}" placeholder="例：問過王課長，免費"></div>`;
   }
 }
 
@@ -889,11 +897,6 @@ function wire(c, it) {
     const k = inp.dataset.k;
     s[k] = inp.type === "number" && inp.closest(".stepper") ? Math.max(+inp.min || 0, parseInt(inp.value) || 0) : inp.value;
     if (k === "maps") inp.classList.toggle("bad", inp.value === "");
-    if (k === "text" && s.auto !== false) {
-      const hb = kwHits(s.text, KW_BLD).length > 0, hs = kwHits(s.text, KW_SPLIT).length > 0;
-      if (hb !== s.useBld || hs !== s.useSplit) { s.useBld = hb; s.useSplit = hs; const pos = inp.selectionStart; rer(); const t = document.querySelector(`#card-${it.id} textarea`); t.focus(); t.setSelectionRange(pos, pos); return; }
-      const hits = c.querySelector(".hits"); const tmp = $(`<div>${body(it)}</div>`); hits.innerHTML = tmp.querySelector(".hits").innerHTML;
-    }
     update();
   });
   c.querySelectorAll("input[data-li]").forEach(inp => inp.oninput = () => { s[inp.dataset.li][+inp.dataset.i] = inp.value; update(); });
@@ -901,7 +904,7 @@ function wire(c, it) {
   c.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { s[b.dataset.del].splice(+b.dataset.i, 1); rer(); });
   c.querySelectorAll("input[type=radio]").forEach(r => { r.dataset.k = r.name; r.name = it.id + "__" + r.name; r.checked = s[r.dataset.k] === r.value; r.onchange = () => { s[r.dataset.k] = r.value; rer(); }; });
   c.querySelectorAll("[data-web]").forEach(b => b.onclick = () => { s.web = b.dataset.web === "1"; rer(); });
-  c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { s[r.dataset.ck] = r.checked; if (r.dataset.ck === "useBld" || r.dataset.ck === "useSplit") s.auto = false; rer(); });
+  c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { s[r.dataset.ck] = r.checked; rer(); });
 }
 
 /* =====================================================================
@@ -989,7 +992,7 @@ function calcReg() {
   reg.rows.forEach((r, i) => {
     const T = REG_TYPES.find(x => x.id === r.t); if (!T) return;
     if (!T.r) { L.push({ t: `登記費：${T.n}`, f: "免費", a: 0, law: T.law }); return; }
-    const v = parseFloat(r.v); if (!(v > 0)) { L.push({ t: `登記費：${T.n}`, f: `還沒填${T.v}`, a: 0, law: T.law, flag: true }); return; }
+    const v = Math.round(parseFloat(r.v)); if (!(v > 0)) { L.push({ t: `登記費：${T.n}`, f: `還沒填${T.v}`, a: 0, law: T.law, flag: true }); return; }
     const a = Math.round(v * T.r); feeSum += a; if (T.late) lateSum += a;
     L.push({ t: `登記費：${T.n}`, f: `${fmt(v)} × ${T.r === 0.002 ? "2／1000" : "1／1000"}`, a, law: T.law });
   });
@@ -1179,17 +1182,17 @@ document.getElementById("btnAllLaw").onclick = showAll;
 let custWin = null;
 function custBody(total) {
   const meas = allLines(), rl = calcReg();
-  const row = (t, a) => `<tr><td>${esc(t)}</td><td class="n">${fmt(a)}</td></tr>`;
+  const row = (t, a, flag) => `<tr><td>${esc(flag ? t.replace(/（.*$/, "") : t)}</td><td class="n">${flag ? "確認中" : fmt(a)}</td></tr>`;
   let h = "";
-  meas.forEach(({ it, lines }) => { h += `<tr class="g"><td>${esc(it.name)}</td><td class="n">${fmt(lines.reduce((a, b) => a + b.a, 0))}</td></tr>` + lines.map(l => row(l.t, l.a)).join(""); });
+  meas.forEach(({ it, lines }) => { h += `<tr class="g"><td>${esc(it.name)}</td><td class="n">${fmt(lines.reduce((a, b) => a + b.a, 0))}</td></tr>` + lines.map(l => row(l.t, l.a, l.flag)).join(""); });
   const measSum = meas.reduce((a, x) => a + x.lines.reduce((p, q) => p + q.a, 0), 0), regSum = rl.reduce((a, b) => a + b.a, 0);
-  let body = `<table>${h || `<tr><td colspan="2" style="color:#777">（還沒有收費項目）</td></tr>`}${reg ? `<tr class="s"><td>測量費小計</td><td class="n">${fmt(measSum)}</td></tr>` : ""}</table>`;
-  if (reg) body += `<h2>登記規費</h2><table>${rl.map(l => row(l.t, l.a)).join("") || `<tr><td colspan="2">（無）</td></tr>`}<tr class="s"><td>登記規費小計</td><td class="n">${fmt(regSum)}</td></tr></table>`;
+  let body = reg && !meas.length ? "" : `<table>${h || `<tr><td colspan="2" style="color:#777">（還沒有收費項目）</td></tr>`}${reg ? `<tr class="s"><td>測量費小計</td><td class="n">${fmt(measSum)}</td></tr>` : ""}</table>`;
+  if (reg) body += `<h2>登記規費</h2><table>${rl.map(l => row(l.t, l.a, l.flag)).join("") || `<tr><td colspan="2">（無）</td></tr>`}<tr class="s"><td>登記規費小計</td><td class="n">${fmt(regSum)}</td></tr></table>`;
   const c = caseInfo();
   return `<header><h1>本次應繳費用</h1><div class="meta">${c.who ? `申請人：${esc(c.who)}　` : ""}${c.where ? `坐落：${esc(c.where)}` : ""}</div></header>
     <main>${body}</main>
     <footer><div class="lbl">應繳合計</div><div class="big">NT$ ${fmt(total)}</div><div class="cn">新臺幣${cnMoney(total)}元整</div>
-    <p>測量費為收件預收金額，實際依測量結果多退少補。有問題請向櫃台人員詢問。</p></footer>`;
+    <p>${meas.length ? "測量費為收件預收金額，實際依測量結果多退少補。" : ""}有問題請向櫃台人員詢問。</p></footer>`;
 }
 function pushCustomer(total) {
   const b = document.getElementById("btnCust");
@@ -1227,6 +1230,7 @@ document.getElementById("btnCust").onclick = async () => {
 
 /* ---- 列印 ---- */
 document.getElementById("btnPrint").onclick = () => {
+  if (!order.length && !reg) { toast("還沒選任何申請原因，先按上面的按鈕喔"); return; }
   const total = update(); const c = caseInfo(); const d = new Date();
   const ds = `${d.getFullYear() - 1911} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   let rows = "";
@@ -1239,8 +1243,11 @@ document.getElementById("btnPrint").onclick = () => {
   const measSum = allLines().reduce((a, x) => a + x.lines.reduce((p, q) => p + q.a, 0), 0);
   const rl = calcReg(); const regSum = rl.reduce((a, b) => a + b.a, 0);
   let regRows = "";
-  if (reg) {
+  const onlyReg = reg && !order.length;
+  if (reg && !onlyReg) {
     rows += `<tr class="tot"><td colspan="3">測量費小計</td><td class="n">${fmt(measSum)}</td></tr>`;
+  }
+  if (reg) {
     regRows = `<h2 style="font-size:14pt;margin:5mm 0 2mm">登記規費</h2>
       <table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead><tbody>
       ${rl.map(l => `<tr><td>${esc(l.t)}</td><td>${esc(l.f)}</td><td class="basis">${lawCell(l)}</td><td class="n">${fmt(l.a)}</td></tr>`).join("") || `<tr><td colspan="4">（無）</td></tr>`}
@@ -1248,26 +1255,27 @@ document.getElementById("btnPrint").onclick = () => {
   }
   const flagged = allLines().some(x => x.lines.some(l => l.flag)) || rl.some(l => l.flag);
   document.getElementById("printArea").innerHTML = `<div class="rp">
-    <h1>${reg ? "測量及登記規費收費明細" : "測量案件預收費用明細"}</h1>
+    <h1>${onlyReg ? "登記規費收費明細" : reg ? "測量及登記規費收費明細" : "測量案件預收費用明細"}</h1>
     <div class="meta"><div>收件字號：${esc(c.no) || "＿＿＿＿＿＿＿＿"}</div><div>試算時間：${ds}</div>
       <div>申請人：${esc(c.who) || "＿＿＿＿＿＿＿＿"}</div><div>坐落：${esc(c.where) || "＿＿＿＿＿＿＿＿"}</div></div>
-    <table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead>
+    ${onlyReg ? "" : `<h2 style="font-size:14pt;margin:0 0 2mm">${reg ? "測量費" : ""}</h2><table><thead><tr><th style="width:34%">項目</th><th style="width:22%">算式</th><th>依據</th><th style="width:14%">金額（元）</th></tr></thead>
     <tbody>${rows || `<tr><td colspan="4">尚未選擇申請原因</td></tr>`}
-    ${reg ? "" : `<tr class="tot"><td colspan="3">應預收合計　新臺幣 ${cnMoney(total)} 元整</td><td class="n">${fmt(total)}</td></tr>`}</tbody></table>
+    ${reg ? "" : `<tr class="tot"><td colspan="3">應預收合計　新臺幣 ${cnMoney(total)} 元整</td><td class="n">${fmt(total)}</td></tr>`}</tbody></table>`}
     ${regRows}
-    ${reg ? `<table style="margin-top:4mm"><tbody><tr class="tot"><td>應收合計（測量費 ${fmt(measSum)}＋登記規費 ${fmt(regSum)}）　新臺幣 ${cnMoney(total)} 元整</td><td class="n" style="width:14%">${fmt(total)}</td></tr></tbody></table>` : ""}
+    ${reg ? `<table style="margin-top:4mm"><tbody><tr class="tot"><td>應收合計（${onlyReg ? "" : `測量費 ${fmt(measSum)}＋`}登記規費 ${fmt(regSum)}）　新臺幣 ${cnMoney(total)} 元整</td><td class="n" style="width:14%">${fmt(total)}</td></tr></tbody></table>` : ""}
     <div class="notes">
-      ${flagged ? "<p>⚠ 本明細含尚未填入金額之項目（網站試算或洽課長），請確認。</p>" : ""}
+      ${flagged ? "<p>⚠ 本明細含尚未填好的項目（標 ⚠ 者），請確認後再收費。</p>" : ""}
+      ${onlyReg ? `<p>一、登記規費依土地法第 65、67、73、76 條、《土地登記規費及其罰鍰計收補充規定》及書狀費、工本費及閱覽費收費標準計算。</p>` : `
       <p>一、本表為收件預收試算，線段數、點數、面積單位以實際測量結果為準，多退少補。</p>
       <p>二、依據《土地複丈費及建築改良物測量費收費標準》（112 年 5 月 1 日施行）及本所收件作法${reg ? "；登記規費依土地法第 65、67、73、76 條、《土地登記規費及其罰鍰計收補充規定》及書狀費、工本費及閱覽費收費標準" : ""}。</p>
-      <p>三、複丈或測量日期前撤回者，依第 8 條扣除已支出費用（已赴現場整備 800 元；未赴現場 300 元）後退還。</p>
+      <p>三、複丈或測量日期前撤回者，依第 8 條扣除已支出費用（已赴現場整備 800 元；未赴現場 300 元）後退還。</p>`}
     </div>
     <div class="sign"><span>收件人員：＿＿＿＿＿＿＿＿</span><span>申請人確認：＿＿＿＿＿＿＿＿</span></div></div>`;
   let framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
   if (!framed) { window.print(); return; }
   document.getElementById("dlgTitle").textContent = "預收費用明細";
   document.getElementById("dlgBody").innerHTML = `
-    <p class="warn" style="margin:0">這個網頁版不能直接叫出印表機。要列印請用本機版（index.html，用瀏覽器打開後按「🖨 列印明細」），或先按下面的「複製明細」貼到 Word 再印。</p>
+    <p class="warn" style="margin:0">這個畫面不能直接叫出印表機。請用瀏覽器直接打開 HTML 檔再按「🖨 列印明細」，或先按下面的「複製明細」貼到 Word 再印。</p>
     <div class="btns" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btnCopy">📋 複製明細</button><span id="copyMsg" style="align-self:center;color:var(--muted);font-size:14px"></span></div>
     <div class="pv">${document.getElementById("printArea").innerHTML}</div>`;
   document.getElementById("btnCopy").onclick = () => {
@@ -1278,6 +1286,10 @@ document.getElementById("btnPrint").onclick = () => {
   dlg.showModal();
 };
 
+/* ---- 小提示 ---- */
+let toastT = 0;
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2200); }
+
 /* ---- 其他 ---- */
 let resetArmed = 0;
 document.getElementById("btnReset").onclick = () => {
@@ -1287,7 +1299,9 @@ document.getElementById("btnReset").onclick = () => {
   for (const k in state) delete state[k]; order = []; reg = null;
   caseNo.value = caseWho.value = caseWhere.value = "";
   renderTiles(); renderCards(); renderReg(); update();
+  document.getElementById("q").value = ""; renderSearch();
   window.scrollTo({ top: 0, behavior: "smooth" });
+  toast("已清空，可以收下一位了");
 };
 document.getElementById("btnTheme").onclick = () => {
   const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
