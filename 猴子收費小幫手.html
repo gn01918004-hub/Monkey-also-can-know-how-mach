@@ -79,10 +79,8 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .weblink:hover { filter: brightness(1.1); }
 .linkbtn { justify-self: start; border: 0; background: transparent; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 2px 0; font-size: 15px; }
 .linkbtn:hover { color: var(--accent); }
-.news { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 14px; padding: 10px 14px; border-radius: 12px; background: var(--land-soft); border: 1px solid var(--land); font-size: 15px; }
-.news b { color: var(--land); }
-.news ul { margin: 0; padding-left: 1.2em; flex-basis: 100%; font-size: 14px; }
-.ver { font: 13px var(--num); color: var(--muted); }
+.ver { font: 13px var(--num); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; cursor: pointer; vertical-align: 2px; }
+.ver:hover { color: var(--accent); border-color: var(--accent); }
 .pv { background: #fff; color: #000; padding: 16px; border-radius: 8px; overflow-x: auto; }
 .pv .rp { min-width: 560px; }
 .pv h1 { font-size: 22px; text-align: center; letter-spacing: .2em; margin: 0 0 10px; }
@@ -244,15 +242,13 @@ table.t td:first-child { text-align: left; }
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>🐒 猴子收費小幫手 <small>測量及登記規費收件提示 <span class="ver" id="verTag"></span></small></h1>
+    <h1>🐒 猴子收費小幫手 <small>測量及登記規費收件提示 <button type="button" class="ver" id="verTag" title="按一下看更新紀錄"></button></small></h1>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" id="btnNews">🔔 更新紀錄</button>
       <button class="btn" id="btnAllLaw">📖 收費標準總表</button>
       <button class="btn" id="btnTheme">🌓 深淺色</button>
       <button class="btn" id="btnReset">🧹 清空重來</button>
     </div>
   </header>
-  <div class="news" id="news" hidden></div>
   <ol class="steps">
     <li><b>1</b>按「申請原因」（跟收件系統的選單一樣）</li>
     <li><b>2</b>照謄本填黃色格子</li>
@@ -313,8 +309,9 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "1.0";
+const VERSION = "1.0.1";
 const CHANGES = [
+  { v: "1.0.1", d: "115.11.23", items: ["更新內容不再自動跳出來，改成按標題旁的版本號查看"] },
   { v: "1.0", d: "115.11.23", items: [
     "正式版發布，檔名改為「猴子收費小幫手.html」",
     "介面整理：顏色更柔和、按鈕更大、卡片加上陰影；加入卡片時會閃一下並跳出提示",
@@ -1316,17 +1313,10 @@ window.addEventListener("pagehide", () => { try { if (custWin && !custWin.closed
   caseNo.value = caseWho.value = caseWhere.value = "";   // 避免瀏覽器自動帶回上次填的字
   renderTiles(); renderCards(); renderReg(); update();
   document.getElementById("verTag").textContent = "v" + VERSION;
-  // 不存資料，所以改成：最新一版在 7 天內發布的，就在最上面提示更新內容
-  const vd = CHANGES[0].d.split(".").map(Number), rel = new Date(vd[0] + 1911, vd[1] - 1, vd[2]);
-  if ((Date.now() - rel) / 864e5 <= 7) {
-    const n = document.getElementById("news"); const c = CHANGES[0];
-    n.innerHTML = `<span>✨ <b>這一版 v${c.v} 更新了</b>（${c.d}）</span><button class="btn" style="margin-left:auto" onclick="this.parentNode.hidden=true">知道了 ✕</button><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
-    n.hidden = false;
-  }
 })();
-document.getElementById("btnNews").onclick = () => {
+document.getElementById("verTag").onclick = () => {
   document.getElementById("dlgTitle").textContent = "更新紀錄";
-  document.getElementById("dlgBody").innerHTML = `<p style="margin:0;color:var(--muted);font-size:14px">新版發布後 7 天內，打開網頁最上面會跳出綠色通知。目前版本 v${VERSION}。</p>` +
+  document.getElementById("dlgBody").innerHTML = `<p style="margin:0;color:var(--muted);font-size:14px">目前版本 v${VERSION}。以後按標題旁邊的版本號，就能看到這裡。</p>` +
     CHANGES.map(c => `<div class="law"><h3>v${c.v}　${c.d}</h3>${c.items.map(i => `<p>・${esc(i)}</p>`).join("")}</div>`).join("");
   dlg.showModal();
 };
