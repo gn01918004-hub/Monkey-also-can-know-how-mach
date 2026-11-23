@@ -265,7 +265,7 @@ table.t td:first-child { text-align: left; }
         <div class="empty" id="emptyHint">👆 先按上面的申請原因，這裡會跳出要填的格子。</div>
       </section>
       <section id="regSec" aria-label="登記規費"></section>
-      <p class="foot">本頁為試算提示工具，實際收費以登記機關核定為準。依據《土地複丈費及建築改良物測量費收費標準》（112.5.1 施行）。資料只在這台電腦的瀏覽器內，不會上傳。</p>
+      <p class="foot">本頁為試算提示工具，實際收費以登記機關核定為準。依據《土地複丈費及建築改良物測量費收費標準》（112.5.1 施行）。🔒 不會存任何資料：關掉或重新整理網頁，填的內容就全部清空。</p>
     </main>
 
     <aside class="total" aria-live="polite">
@@ -301,8 +301,14 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "0.8.2";
+const VERSION = "0.9";
 const CHANGES = [
+  { v: "0.9", d: "115.11.23", items: [
+    "資安：不再存任何資料，關掉或重新整理網頁就全部清空（主畫面關掉，民眾畫面也一起關）",
+    "增建先問「往哪裡蓋」：往上蓋不收位置圖費；往旁邊蓋才收 4,000 元／棟",
+    "搜尋「權狀遺失」會跳出登記規費",
+    "修正：同時開好幾張建物卡片時，選項會互相干擾的問題",
+  ] },
   { v: "0.8.2", d: "115.11.20", items: ["搜尋加入很多民眾口語說法（例如 拆除執照、分家、開路、房子沒權狀、頂樓加蓋、過戶、貸款）"] },
   { v: "0.8.1", d: "115.11.20", items: ["搜尋打「自用住宅」會跳出門牌勘查"] },
   { v: "0.8", d: "115.11.20", items: [
@@ -401,6 +407,7 @@ const LAW = {
   z4: { h: "直轄市或縣市政府辦理土地徵收業務作業費基準 第 4 點", p: ["本基準為每公頃新臺幣十萬五千元，面積不足一公頃者，以一公頃計。面積超過一公頃者，其小數點部分以每公頃單價相乘後四捨五入計算至百元。", "同一用地範圍內因漏列而補辦徵收者，其作業費應併入原案計算之。"] },
   z5: { h: "直轄市或縣市政府辦理土地徵收業務作業費基準 第 5 點", p: ["徵收土地面積每公頃以二十筆計算，每增加一筆，另增加作業費新臺幣一千三百元。", "人數以依法令應通知對象歸戶後三十人計算，每增加一人，另增加作業費新臺幣四百元。"] },
   web: { inhouse: true, h: "本所收件作法：鑑界、分割先用內政部試算網站", p: ["鑑界、再鑑界、土地分割先以內政部網站試算（easymap.moi.gov.tw/BSWeb/），把網站算出的金額填入。", "網站無法使用時，才改用本頁的計算機，依附表一自行計算。"] },
+  inExtend: { inhouse: true, h: "本所收件作法：增建", p: ["增建大多是往上蓋（頂樓加蓋、加一層），建物位置沒變，不收位置圖測量費，只收增建部分的平面圖測量費。", "往旁邊蓋（地面上往外擴）才加收位置圖測量費 4,000 元／棟。"] },
   inFree: { inhouse: true, h: "本所收件作法：更正、訂正", p: ["更正、訂正不收費。"] },
   inBoss: { inhouse: true, h: "本所收件作法：課長決定", p: ["使用面積測量、土地其他、建物其他：收費方式由測量課課長決定，請洽分機 #201。"] },
   inLandUse: { inhouse: true, h: "本所收件作法：地目變更（早期項目）", p: ["地目變更預收 500 元。此為早期項目，現已少見。"] },
@@ -455,8 +462,8 @@ const GROUPS = [
 /* 狀態 */
 const state = {}; // id -> 該卡片的輸入值
 let order = [];   // 卡片順序
-const LS = "monkey-fee-v0";
-function save() { try { localStorage.setItem(LS, JSON.stringify({ state, order, reg, c: caseInfo() })); } catch (e) {} }
+// 資安：不使用 localStorage／sessionStorage／cookie，關掉網頁資料就清空
+function save() {}
 function caseInfo() { return { no: caseNo.value, who: caseWho.value, where: caseWhere.value }; }
 
 function defaults(it) {
@@ -470,7 +477,7 @@ function defaults(it) {
     case "other":   return { lots: [""], lines: 1 };
     case "free":    return {};
     case "per500":  return { n: 1 };
-    case "bfirst":  return { mode: "282", buildings: 1, sameBld: 0, floors: [""], n: 1, hasData: true, hasFile: true };
+    case "bfirst":  return { mode: "282", buildings: 1, sameBld: 0, floors: [""], n: 1, hasData: true, hasFile: true, dir: "up" };
     case "bsplit":  return { floors: ["", ""], n: 2 };
     case "bmerge":  return { floors: ["", ""], n: 2 };
     case "loss":    return { mode: "all", n: 1, floors: [""] };
@@ -561,7 +568,9 @@ function calc(it) {
     case "per500": if (s.n > 0) L.push({ t: `${it.name}費`, f: `${fmt(RATES.survey500)} × ${s.n} ${it.unitWord || "建號"}`, a: RATES.survey500 * s.n, law: it.law }); break;
     case "bfirst": {
       if (s.mode === "282") {
-        const full = Math.max(0, s.buildings);
+        const up = it.id === "extend" && s.dir !== "side";
+        const full = up ? 0 : Math.max(0, s.buildings);
+        if (up) L.push({ t: "增建往上蓋（頂樓加蓋、加一層）：不收位置圖測量費", f: "0", a: 0, law: ["t2_1", "inExtend"] });
         if (full) L.push({ t: "建物位置圖測量費", f: `${fmt(RATES.bldPos)} × ${full} 棟`, a: RATES.bldPos * full, law: ["t2_1"] });
         if (s.sameBld > 0) L.push({ t: "同棟已測過，調原位置圖轉繪", f: `${fmt(RATES.bldPosSame)} × ${s.sameBld} 建號`, a: RATES.bldPosSame * s.sameBld, law: ["t2_1"] });
         floorLines(s.floors, RATES.bldFloor, "建物平面圖測量費").forEach(x => L.push({ ...x, law: ["t2_1"] }));
@@ -666,7 +675,7 @@ const KEYS = {
   bldElse: "建物其他 其他 不知道 課長",
   landUse: "地目變更 地目 田 旱 早期",
 };
-const REG_KEYS = "登記規費 登記費 過戶 買賣 買房 賣房 贈與 送給 繼承 遺產 過世 往生 抵押 貸款 銀行 設定 他項權利設定 塗銷 還清 清償 信託 拍賣 書狀 權狀 補發 遺失 謄本 地籍圖謄本 影印 閱覽 查資料 工本費 罰鍰 逾期 太晚辦 千分之一 千分之二";
+const REG_KEYS = "登記規費 登記費 過戶 買賣 買房 賣房 贈與 送給 繼承 遺產 過世 往生 抵押 貸款 銀行 設定 他項權利設定 塗銷 還清 清償 信託 拍賣 書狀 權狀 權狀遺失 權狀不見 書狀遺失 補發 遺失 謄本 地籍圖謄本 影印 閱覽 查資料 工本費 罰鍰 逾期 太晚辦 千分之一 千分之二";
 function searchItems(q) {
   q = q.trim(); if (!q) return [];
   const words = q.split(/\s+/);
@@ -788,17 +797,22 @@ function body(it) {
       <div class="q-row"><span class="lbl">幾${it.unitWord ? "筆地號" : "個建號"}</span>${stepper("n", s.n, it.unitWord ? "筆" : "建號", 1)}</div>`;
     case "bfirst": return `
       ${it.id !== "bFirst" ? `<p class="say">${esc(it.name)}跟<b>新建（建物第一次）一樣收法</b>。</p>` : ""}
-      <p class="warn">🏠 <b>幾棟：看使用執照上面寫幾棟，就填幾棟。</b></p>
-      <p class="say">先看民眾<b>帶了什麼</b>來，選一個：</p>
+      ${it.id === "extend" ? `<p class="say">先問民眾：<b>往哪裡蓋？</b></p>
+      <div class="opts">
+        ${radio("dir", "up", s.dir, "⬆ 往上蓋（頂樓加蓋、加一層）", "大部分是這種：不收位置圖費，只收新蓋那層的平面圖費")}
+        ${radio("dir", "side", s.dir, "➡ 往旁邊蓋（地面上往外擴）", "房子佔的位置變了：要加收位置圖費 4,000 元／棟")}
+      </div>` : ""}
+      ${it.id === "extend" && s.dir !== "side" ? "" : `<p class="warn">🏠 <b>幾棟：看使用執照上面寫幾棟，就填幾棟。</b></p>`}
+      <p class="say">再看民眾<b>帶了什麼</b>來，選一個：</p>
       <div class="opts">
         ${radio("mode", "282", s.mode, "沒有圖，要我們去測（建管前建物等，§282）", "位置圖 4,000 元／棟 ＋ 平面圖 每層每 50 ㎡ 1,000 元")}
         ${radio("mode", "2821", s.mode, "有建物測繪資料（使照竣工圖等），我們轉繪（§282-1）", "每建號 200＋800 元")}
         ${radio("mode", "2822", s.mode, "自己請人畫好成果圖，我們核對（§282-2）", "每建號 200 元，沒電子檔再加 600 元")}
       </div>
       ${s.mode === "282" ? `
-        <div class="q-row"><span class="lbl">幾棟（看使用執照）</span>${stepper("buildings", s.buildings, "棟")}<span class="note">使用執照上寫幾棟就填幾棟。同一棟已經有人測過位置圖、可以調原圖的建號，不要算在這裡，填下面一格。</span></div>
-        <div class="q-row"><span class="lbl">同棟已測過（調原圖）</span>${stepper("sameBld", s.sameBld, "建號")}<span class="note">每建號 200 元。一般填 0。</span></div>
-        <div><div class="q-row"><span class="lbl">每層（每建號每層各一列）面積</span></div>${areaList("floors", s.floors, "樓層", "層")}</div>` :
+        ${it.id === "extend" && s.dir !== "side" ? "" : `<div class="q-row"><span class="lbl">幾棟（看使用執照）</span>${stepper("buildings", s.buildings, "棟")}<span class="note">使用執照上寫幾棟就填幾棟。同一棟已經有人測過位置圖、可以調原圖的建號，不要算在這裡，填下面一格。</span></div>
+        <div class="q-row"><span class="lbl">同棟已測過（調原圖）</span>${stepper("sameBld", s.sameBld, "建號")}<span class="note">每建號 200 元。一般填 0。</span></div>`}
+        <div><div class="q-row"><span class="lbl">${it.id === "extend" ? "增建部分每層面積" : "每層（每建號每層各一列）面積"}</span></div>${areaList("floors", s.floors, "樓層", "層")}</div>` :
       `<div class="q-row"><span class="lbl">幾個建號</span>${stepper("n", s.n, "建號", 1)}</div>
        <div class="opts">
          ${check("hasData", s.hasData, "有附建物地籍測繪資料", "沒附的話不要勾：要加收位置圖測量費 4,000 元／棟")}
@@ -885,7 +899,7 @@ function wire(c, it) {
   c.querySelectorAll("input[data-li]").forEach(inp => inp.oninput = () => { s[inp.dataset.li][+inp.dataset.i] = inp.value; update(); });
   c.querySelectorAll("[data-add]").forEach(b => b.onclick = () => { s[b.dataset.add].push(""); rer(); const l = c.ownerDocument.querySelectorAll(`#card-${it.id} [data-li="${b.dataset.add}"]`); l[l.length - 1]?.focus(); });
   c.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { s[b.dataset.del].splice(+b.dataset.i, 1); rer(); });
-  c.querySelectorAll("input[type=radio]").forEach(r => r.onchange = () => { s[r.name] = r.value; rer(); });
+  c.querySelectorAll("input[type=radio]").forEach(r => { r.dataset.k = r.name; r.name = it.id + "__" + r.name; r.checked = s[r.dataset.k] === r.value; r.onchange = () => { s[r.dataset.k] = r.value; rer(); }; });
   c.querySelectorAll("[data-web]").forEach(b => b.onclick = () => { s.web = b.dataset.web === "1"; rer(); });
   c.querySelectorAll("input[data-ck]").forEach(r => r.onchange = () => { s[r.dataset.ck] = r.checked; if (r.dataset.ck === "useBld" || r.dataset.ck === "useSplit") s.auto = false; rer(); });
 }
@@ -1277,32 +1291,28 @@ document.getElementById("btnReset").onclick = () => {
 };
 document.getElementById("btnTheme").onclick = () => {
   const r = document.documentElement; const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem(LS + "-theme", r.dataset.theme); } catch (e) {}
+  r.dataset.theme = dark ? "light" : "dark";
 };
-[caseNo, caseWho, caseWhere].forEach(i => i.oninput = () => update());
+[caseNo, caseWho, caseWhere].forEach(i => { i.oninput = () => update(); i.setAttribute("autocomplete", "off"); });
+document.querySelectorAll("input, textarea").forEach(i => i.setAttribute("autocomplete", "off"));
+// 關掉主畫面時，民眾畫面也一起關掉
+window.addEventListener("pagehide", () => { try { if (custWin && !custWin.closed) custWin.close(); } catch (e) {} });
 
 (function init() {
-  try { const t = localStorage.getItem(LS + "-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-  try {
-    const d = JSON.parse(localStorage.getItem(LS) || "null");
-    if (d && Array.isArray(d.order)) {
-      d.order.forEach(id => { const it = ITEMS.find(i => i.id === id); if (it && d.state[id]) { state[id] = { ...defaults(it), ...d.state[id] }; order.push(id); } });
-      if (d.c) { caseNo.value = d.c.no || ""; caseWho.value = d.c.who || ""; caseWhere.value = d.c.where || ""; }
-      if (d.reg && Array.isArray(d.reg.rows)) reg = { ...regDefault(), ...d.reg };
-    }
-  } catch (e) {}
+  caseNo.value = caseWho.value = caseWhere.value = "";   // 避免瀏覽器自動帶回上次填的字
   renderTiles(); renderCards(); renderReg(); update();
   document.getElementById("verTag").textContent = "v" + VERSION;
-  let last = null; try { last = localStorage.getItem(LS + "-ver"); localStorage.setItem(LS + "-ver", VERSION); } catch (e) {}
-  if (last && last !== VERSION) {
+  // 不存資料，所以改成：最新一版在 7 天內發布的，就在最上面提示更新內容
+  const vd = CHANGES[0].d.split(".").map(Number), rel = new Date(vd[0] + 1911, vd[1] - 1, vd[2]);
+  if ((Date.now() - rel) / 864e5 <= 7) {
     const n = document.getElementById("news"); const c = CHANGES[0];
-    n.innerHTML = `<span>✨ <b>已自動更新到 v${c.v}</b>（${c.d}）</span><button class="btn" style="margin-left:auto" onclick="this.parentNode.hidden=true">知道了 ✕</button><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+    n.innerHTML = `<span>✨ <b>這一版 v${c.v} 更新了</b>（${c.d}）</span><button class="btn" style="margin-left:auto" onclick="this.parentNode.hidden=true">知道了 ✕</button><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
     n.hidden = false;
   }
 })();
 document.getElementById("btnNews").onclick = () => {
   document.getElementById("dlgTitle").textContent = "更新紀錄";
-  document.getElementById("dlgBody").innerHTML = `<p style="margin:0;color:var(--muted);font-size:14px">每次打開網頁都是最新版，有更新時最上面會跳出綠色通知。目前版本 v${VERSION}。</p>` +
+  document.getElementById("dlgBody").innerHTML = `<p style="margin:0;color:var(--muted);font-size:14px">新版發布後 7 天內，打開網頁最上面會跳出綠色通知。目前版本 v${VERSION}。</p>` +
     CHANGES.map(c => `<div class="law"><h3>v${c.v}　${c.d}</h3>${c.items.map(i => `<p>・${esc(i)}</p>`).join("")}</div>`).join("");
   dlg.showModal();
 };
