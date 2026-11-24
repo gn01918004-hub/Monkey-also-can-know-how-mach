@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>猴子收費小幫手</title>
+<title>貓裡規費通</title>
 <style>
 /* 一樓收件櫃台用：按申請原因 → 填幾個數字 → 看大大的金額 → 列印明細 */
 :root {
@@ -36,7 +36,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 140px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); letter-spacing: .04em; }
-h1 small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 8px; letter-spacing: 0; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mascot { font-size: 44px; line-height: 1; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.slogan { margin: 2px 0 0; font-size: 16px; font-weight: 700; color: var(--money); letter-spacing: .06em; }
+.slogan span { color: var(--muted); font-weight: 400; letter-spacing: 0; }
 .btn { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 16px; min-height: 42px; cursor: pointer; white-space: nowrap; transition: border-color .15s, color .15s, background .15s, transform .1s; }
 .btn:active { transform: translateY(1px); }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -79,7 +82,7 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .weblink:hover { filter: brightness(1.1); }
 .linkbtn { justify-self: start; border: 0; background: transparent; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 2px 0; font-size: 15px; }
 .linkbtn:hover { color: var(--accent); }
-.ver { font: 13px var(--num); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; cursor: pointer; vertical-align: 2px; }
+.ver { font: 400 13px var(--num); letter-spacing: 0; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; cursor: pointer; vertical-align: 2px; }
 .ver:hover { color: var(--accent); border-color: var(--accent); }
 .pv { background: #fff; color: #000; padding: 16px; border-radius: 8px; overflow-x: auto; }
 .pv .rp { min-width: 560px; }
@@ -95,6 +98,7 @@ details.grp[open] > summary h3::before { content: "▾ "; }
 .pv .notes { font-size: 12px; margin-top: 8px; }
 .pv .notes p { margin: 2px 0; }
 .pv .sign { display: flex; justify-content: space-between; margin-top: 18px; font-size: 14px; }
+.pv .brandline { margin-top: 10px; text-align: right; font-size: 11px; color: #666; }
 
 .regbtn { margin-top: 14px; width: 100%; border: 2px dashed var(--reg); background: var(--reg-soft); color: var(--reg); border-radius: 12px; padding: 12px; font-size: 18px; font-weight: 800; cursor: pointer; }
 .regbtn[aria-pressed="true"] { border-style: solid; }
@@ -236,13 +240,20 @@ table.t td:first-child { text-align: left; }
   .rp .tot td { font-size: 14pt; font-weight: 700; }
   .rp .notes { font-size: 9.5pt; margin-top: 4mm; }
   .rp .sign { display: flex; justify-content: space-between; margin-top: 10mm; font-size: 11pt; }
+  .rp .brandline { margin-top: 6mm; text-align: right; font-size: 8.5pt; color: #666; }
 }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>🐒 猴子收費小幫手 <small>測量及登記規費收件提示 <button type="button" class="ver" id="verTag" title="按一下看更新紀錄"></button></small></h1>
+    <div class="brand">
+      <span class="mascot" aria-hidden="true">🐒</span>
+      <div>
+        <h1>貓裡規費通 <button type="button" class="ver" id="verTag" title="按一下看更新紀錄"></button></h1>
+        <p class="slogan">簡單到連猴子都會用<span>・測量及登記規費收件試算</span></p>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnAllLaw">📖 收費標準總表</button>
       <button class="btn" id="btnTheme">🌓 深淺色</button>
@@ -309,8 +320,13 @@ table.t td:first-child { text-align: left; }
 /* =====================================================================
    版本：每次改版改這裡，打開時會自動顯示更新了什麼
    ===================================================================== */
-const VERSION = "1.0.1";
+const VERSION = "1.1.0";
 const CHANGES = [
+  { v: "1.1.0", d: "115.11.24", items: [
+    "正式更名為「貓裡規費通」（貓裡為苗栗舊稱），檔名改為「貓裡規費通.html」",
+    "猴子改當吉祥物，副標「簡單到連猴子都會用」",
+    "列印明細和民眾畫面加上系統名稱",
+  ] },
   { v: "1.0.1", d: "115.11.23", items: ["更新內容不再自動跳出來，改成按標題旁的版本號查看"] },
   { v: "1.0", d: "115.11.23", items: [
     "正式版發布，檔名改為「猴子收費小幫手.html」",
@@ -1189,7 +1205,8 @@ function custBody(total) {
   return `<header><h1>本次應繳費用</h1><div class="meta">${c.who ? `申請人：${esc(c.who)}　` : ""}${c.where ? `坐落：${esc(c.where)}` : ""}</div></header>
     <main>${body}</main>
     <footer><div class="lbl">應繳合計</div><div class="big">NT$ ${fmt(total)}</div><div class="cn">新臺幣${cnMoney(total)}元整</div>
-    <p>${meas.length ? "測量費為收件預收金額，實際依測量結果多退少補。" : ""}有問題請向櫃台人員詢問。</p></footer>`;
+    <p>${meas.length ? "測量費為收件預收金額，實際依測量結果多退少補。" : ""}有問題請向櫃台人員詢問。</p>
+    <p class="brand">🐒 貓裡規費通</p></footer>`;
 }
 function pushCustomer(total) {
   const b = document.getElementById("btnCust");
@@ -1207,10 +1224,10 @@ document.getElementById("btnCust").onclick = async () => {
       if (other) feat = `left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
     }
   } catch (e) {}
-  custWin = window.open("", "monkeyCustomer", feat);
+  custWin = window.open("", "maoliCustomer", feat);
   if (!custWin) { alert("瀏覽器擋住了彈出視窗，請允許這個網頁開新視窗。"); return; }
   custWin.document.open();
-  custWin.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>本次應繳費用</title><style>
+  custWin.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>本次應繳費用｜貓裡規費通</title><style>
     body{margin:0;background:#fff;color:#1d2730;font:26px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;display:flex;flex-direction:column;min-height:100vh}
     header{padding:24px 40px 8px;border-bottom:3px solid #1f5f8b}h1{margin:0;font-size:46px;letter-spacing:.1em}.meta{font-size:22px;color:#5d6a74}
     main{flex:1;padding:12px 40px;overflow:auto}h2{font-size:30px;margin:18px 0 6px;color:#6b3fa0}
@@ -1219,7 +1236,7 @@ document.getElementById("btnCust").onclick = async () => {
     tr.g td{font-weight:800;border-bottom:2px solid #1d2730;padding-top:14px}tr:not(.g):not(.s) td:first-child{padding-left:28px;font-size:22px;color:#444}
     tr.s td{font-weight:800;border-top:2px solid #1d2730}
     footer{background:#fbeceb;padding:20px 40px 26px;border-top:4px solid #b3302a}.lbl{font-size:28px;font-weight:700}
-    .big{font:800 88px/1.1 Consolas,monospace;color:#b3302a}.cn{font-size:30px;font-weight:700}footer p{margin:8px 0 0;font-size:20px;color:#5d6a74}
+    .big{font:800 88px/1.1 Consolas,monospace;color:#b3302a}.cn{font-size:30px;font-weight:700}footer p{margin:8px 0 0;font-size:20px;color:#5d6a74}footer p.brand{font-size:16px;text-align:right;margin-top:4px}
     </style></head><body><div id="cv" style="display:contents"></div></body></html>`);
   custWin.document.close();
   update();
@@ -1267,7 +1284,8 @@ document.getElementById("btnPrint").onclick = () => {
       <p>二、依據《土地複丈費及建築改良物測量費收費標準》（112 年 5 月 1 日施行）及本所收件作法${reg ? "；登記規費依土地法第 65、67、73、76 條、《土地登記規費及其罰鍰計收補充規定》及書狀費、工本費及閱覽費收費標準" : ""}。</p>
       <p>三、複丈或測量日期前撤回者，依第 8 條扣除已支出費用（已赴現場整備 800 元；未赴現場 300 元）後退還。</p>`}
     </div>
-    <div class="sign"><span>收件人員：＿＿＿＿＿＿＿＿</span><span>申請人確認：＿＿＿＿＿＿＿＿</span></div></div>`;
+    <div class="sign"><span>收件人員：＿＿＿＿＿＿＿＿</span><span>申請人確認：＿＿＿＿＿＿＿＿</span></div>
+    <p class="brandline">本明細由「貓裡規費通」v${VERSION} 試算產生</p></div>`;
   let framed = false; try { framed = window.self !== window.top; } catch (e) { framed = true; }
   if (!framed) { window.print(); return; }
   document.getElementById("dlgTitle").textContent = "預收費用明細";
